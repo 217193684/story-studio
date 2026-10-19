@@ -10,7 +10,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-API = os.environ.get("API_URL", "https://story-studio.vercel.app").rstrip("/")
+API = os.environ.get("API_URL", "https://story-studio-kappa-one.vercel.app").rstrip("/")
 REPO = os.environ.get("GITHUB_REPOSITORY", "217193684/story-studio")
 DEADLINE = time.time() + float(os.environ.get("MAX_MINUTES", "300")) * 60
 
