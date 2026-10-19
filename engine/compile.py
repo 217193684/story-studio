@@ -111,26 +111,40 @@ def nearest(val, options, what, rep, default=None):
     rep.swap(what, val, used); return used
 
 
+_eleven_down = False  # once ElevenLabs fails once in a run (quota, bad key, outage), stop retrying it and use the free voice
+
+
+def _kokoro_tts(text, voice, bspeed, f):
+    from kokoro_onnx import Kokoro
+    global _K
+    if "_K" not in globals(): _K = Kokoro(str(VOICE_DIR / "kokoro-v1.0.int8.onnx"), str(VOICE_DIR / "voices-v1.0.bin"))
+    lang = "en-gb" if voice.startswith("b") else "en-us"
+    s, sr = _K.create(text, voice=voice, speed=bspeed, lang=lang)
+    sf.write(f, s, sr)
+
+
 def tts(text, voice, speed, pitch=1.0):
-    """Returns float32 audio at SR. Cached on disk. Uses ElevenLabs when ELEVENLABS_API_KEY is set, else free Kokoro."""
-    backend = "el" if ELEVEN_KEY else "ko"
+    """Returns float32 audio at SR. Cached on disk. Uses ElevenLabs when ELEVENLABS_API_KEY is set and working, else free Kokoro."""
+    global _eleven_down
+    use_eleven = bool(ELEVEN_KEY) and not _eleven_down
+    backend = "el" if use_eleven else "ko"
     key = hashlib.sha1(f"{backend}|{voice}|{speed}|{pitch}|{text}".encode()).hexdigest()[:16]
     cache = HERE / ".cache"; cache.mkdir(exist_ok=True); f = cache / f"{key}.wav"
     if not f.exists():
         bspeed = max(.5, min(2., speed / pitch))
-        if ELEVEN_KEY:
-            vid = _eleven_voice_id(voice)
-            mp3 = _eleven_tts(text, vid, max(.7, min(1.2, bspeed)))
-            tmp = cache / f"{key}.mp3"; tmp.write_bytes(mp3)
-            subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", "24000", "-ac", "1", str(f)], check=True, capture_output=True)
-            tmp.unlink(missing_ok=True)
+        if use_eleven:
+            try:
+                vid = _eleven_voice_id(voice)
+                mp3 = _eleven_tts(text, vid, max(.7, min(1.2, bspeed)))
+                tmp = cache / f"{key}.mp3"; tmp.write_bytes(mp3)
+                subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", "24000", "-ac", "1", str(f)], check=True, capture_output=True)
+                tmp.unlink(missing_ok=True)
+            except Exception as e:
+                print(f"ElevenLabs voice failed ({e}); using the free voice for the rest of this video.")
+                _eleven_down = True
+                return tts(text, voice, speed, pitch)  # retry this line on Kokoro, with its own cache key
         else:
-            from kokoro_onnx import Kokoro
-            global _K
-            if "_K" not in globals(): _K = Kokoro(str(VOICE_DIR / "kokoro-v1.0.int8.onnx"), str(VOICE_DIR / "voices-v1.0.bin"))
-            lang = "en-gb" if voice.startswith("b") else "en-us"
-            s, sr = _K.create(text, voice=voice, speed=bspeed, lang=lang)
-            sf.write(f, s, sr)
+            _kokoro_tts(text, voice, bspeed, f)
     a, sr = sf.read(f)
     if pitch != 1.0:  # resample: raises/lowers pitch (speed was pre-compensated above)
         idx = np.arange(0, len(a), pitch); a = np.interp(idx, np.arange(len(a)), a)
