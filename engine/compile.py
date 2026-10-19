@@ -105,8 +105,22 @@ def mouth_env(a):
     return [round(float(x), 2) for x in env]
 
 
+ANIMAL_WORDS = None
+
+
+def guess_kind(c):
+    """A cast member without a kind whose id or name is an animal word (chicken2, 'Dog') is that animal, not a person."""
+    global ANIMAL_WORDS
+    if ANIMAL_WORDS is None: ANIMAL_WORDS = sorted(CAT["animals"], key=len, reverse=True) + ["hen", "puppy", "kitten", "cattle", "bird"]
+    txt = f"{c.get('id', '')} {c.get('name', '')}".lower()
+    for a in ANIMAL_WORDS:
+        if re.search(rf"\b{a}s?\d*\b", txt.replace("_", " ")):
+            return {"hen": "chicken", "kitten": "cat", "cattle": "cow"}.get(a, a)
+    return None
+
+
 def norm_cast(c, rep, idx):
-    kind = str(c.get("kind", "human")).lower()
+    kind = str(c.get("kind") or guess_kind(c) or "human").lower()
     if kind not in ("human", "person", "man", "woman", "boy", "girl"):
         kind = nearest(kind, CAT["animals"], "animal", rep, "dog")
     else:
@@ -202,7 +216,7 @@ def compile_plan(plan, out_dir, log=print):
         cur = {}
         for a in S.get("actors", []):
             aid = a["id"]
-            if aid not in cast: cast[aid] = norm_cast({"id": aid}, rep, len(cast)); voices[aid] = MALE[len(voices) % len(MALE)]
+            if aid not in cast: cast[aid] = norm_cast({"id": aid, "name": a.get("name", aid)}, rep, len(cast)); voices[aid] = MALE[len(voices) % len(MALE)]
             init = {"x": spot_x(place, a.get("x", .5)), "pose": nearest(a.get("pose", "stand"), CAT["poses"], "pose", rep, "stand"),
                     "expr": nearest(a.get("face", "neutral"), CAT["exprs"], "face", rep, "neutral"), "facing": a.get("facing") or ("right" if spot_x(place, a.get("x", .5)) < .5 else "left"),
                     "hold": nearest(a.get("hold"), CAT["held"], "held item", rep) if a.get("hold") else None, "visible": a.get("visible", True), "depth": a.get("depth", 0), "y": float(a.get("y", 0) or 0)}
