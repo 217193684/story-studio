@@ -16,6 +16,7 @@ jobs:
     env:
       API_URL: ${{ vars.API_URL || 'https://story-studio-kappa-one.vercel.app' }}
       GH_TOKEN: ${{ github.token }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}   # narration voice; falls back to the free voice if not set
     steps:
       - name: Anything to do?
         id: check

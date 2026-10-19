@@ -14,7 +14,7 @@ Plan format (what the AI director writes):
                         {"sfx": "knock"}, {"effect": "hearts", "at": "thando"}, {"camera": "zoom", "on": "thando"},
                         {"prop": "car", "move": "right"}, {"wait": 1.5}, {"with": true, ...}] }] }
 """
-import difflib, hashlib, json, re, sys
+import difflib, hashlib, json, os, re, subprocess, sys, urllib.error, urllib.request
 from pathlib import Path
 import numpy as np, soundfile as sf
 
@@ -27,6 +27,50 @@ CAT = json.loads((HERE / "catalog.json").read_text())
 VOICE_DIR = Path("/tmp/tts")
 FEMALE = ["af_heart", "af_bella", "bf_emma", "af_nicole", "af_sarah", "bf_isabella", "af_nova", "af_river", "af_jessica", "bf_alice", "af_kore", "bf_lily"]
 MALE = ["am_michael", "bm_george", "am_adam", "bm_lewis", "am_eric", "am_onyx", "am_liam", "bm_daniel", "am_puck", "bm_fable", "am_echo", "am_fenrir"]
+
+# Narration voice: ElevenLabs (paid, natural) if a key is set in the environment, otherwise the free
+# local Kokoro voice. Nothing else in the pipeline needs to know which one is in use — the FEMALE/MALE
+# name lists above stay the same either way; we just map each name to a matching ElevenLabs voice when
+# a key is present.
+ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY")
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+_EL_VOICES = None
+
+
+def _eleven_voice_catalog():
+    """Fetches the account's available voices once per run and splits them by gender."""
+    global _EL_VOICES
+    if _EL_VOICES is not None: return _EL_VOICES
+    req = urllib.request.Request("https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": ELEVEN_KEY})
+    try:
+        data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"ElevenLabs voice list failed: {e.code} {e.read()[:300]!r} — check ELEVENLABS_API_KEY") from e
+    voices = data.get("voices", [])
+    fem = [v["voice_id"] for v in voices if (v.get("labels") or {}).get("gender", "").lower() == "female"]
+    male = [v["voice_id"] for v in voices if (v.get("labels") or {}).get("gender", "").lower() == "male"]
+    if not fem: fem = [v["voice_id"] for v in voices[::2]] or ["21m00Tcm4TlvDq8ikWAM"]
+    if not male: male = [v["voice_id"] for v in voices[1::2]] or ["pNInz6obpgDQGcFmaJgB"]
+    _EL_VOICES = {"female": fem, "male": male}
+    return _EL_VOICES
+
+
+def _eleven_voice_id(name):
+    cat = _eleven_voice_catalog()
+    if name in FEMALE: return cat["female"][FEMALE.index(name) % len(cat["female"])]
+    if name in MALE: return cat["male"][MALE.index(name) % len(cat["male"])]
+    return cat["female"][0]
+
+
+def _eleven_tts(text, voice_id, speed):
+    body = json.dumps({"text": text, "model_id": ELEVEN_MODEL,
+                        "voice_settings": {"stability": .45, "similarity_boost": .8, "style": .4, "use_speaker_boost": True, "speed": round(float(speed), 2)}}).encode()
+    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}", data=body, method="POST",
+                                  headers={"xi-api-key": ELEVEN_KEY, "accept": "audio/mpeg", "content-type": "application/json"})
+    try:
+        return urllib.request.urlopen(req, timeout=60).read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"ElevenLabs speech failed: {e.code} {e.read()[:300]!r}") from e
 ALL_VOICES = FEMALE + MALE + ["af_sky", "af_alloy", "af_aoede", "am_santa"]
 NARRATOR = {"horror": "bm_george", "comedy": "am_puck", "western": "am_onyx", "kids": "af_heart", "drama": "bf_emma", "romance": "af_bella", "action": "am_fenrir"}
 STYLE_MOOD = {"horror": "scary", "comedy": "comedy", "western": "western", "kids": "kids", "drama": "calm", "romance": "romantic", "action": "action"}
@@ -68,16 +112,25 @@ def nearest(val, options, what, rep, default=None):
 
 
 def tts(text, voice, speed, pitch=1.0):
-    """Returns float32 audio at SR. Cached on disk."""
-    key = hashlib.sha1(f"{voice}|{speed}|{pitch}|{text}".encode()).hexdigest()[:16]
+    """Returns float32 audio at SR. Cached on disk. Uses ElevenLabs when ELEVENLABS_API_KEY is set, else free Kokoro."""
+    backend = "el" if ELEVEN_KEY else "ko"
+    key = hashlib.sha1(f"{backend}|{voice}|{speed}|{pitch}|{text}".encode()).hexdigest()[:16]
     cache = HERE / ".cache"; cache.mkdir(exist_ok=True); f = cache / f"{key}.wav"
     if not f.exists():
-        from kokoro_onnx import Kokoro
-        global _K
-        if "_K" not in globals(): _K = Kokoro(str(VOICE_DIR / "kokoro-v1.0.int8.onnx"), str(VOICE_DIR / "voices-v1.0.bin"))
-        lang = "en-gb" if voice.startswith("b") else "en-us"
-        s, sr = _K.create(text, voice=voice, speed=max(.5, min(2., speed / pitch)), lang=lang)
-        sf.write(f, s, sr)
+        bspeed = max(.5, min(2., speed / pitch))
+        if ELEVEN_KEY:
+            vid = _eleven_voice_id(voice)
+            mp3 = _eleven_tts(text, vid, max(.7, min(1.2, bspeed)))
+            tmp = cache / f"{key}.mp3"; tmp.write_bytes(mp3)
+            subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", "24000", "-ac", "1", str(f)], check=True, capture_output=True)
+            tmp.unlink(missing_ok=True)
+        else:
+            from kokoro_onnx import Kokoro
+            global _K
+            if "_K" not in globals(): _K = Kokoro(str(VOICE_DIR / "kokoro-v1.0.int8.onnx"), str(VOICE_DIR / "voices-v1.0.bin"))
+            lang = "en-gb" if voice.startswith("b") else "en-us"
+            s, sr = _K.create(text, voice=voice, speed=bspeed, lang=lang)
+            sf.write(f, s, sr)
     a, sr = sf.read(f)
     if pitch != 1.0:  # resample: raises/lowers pitch (speed was pre-compensated above)
         idx = np.arange(0, len(a), pitch); a = np.interp(idx, np.arange(len(a)), a)
