@@ -12,17 +12,17 @@ function actorState(sc, id, T) {
     if (e.t > T) break;
     if (e.type === 'set') {
       if (e.pose) setPose(e.pose, e.t);
-      ['x', 'expr', 'facing', 'hold', 'visible', 'depth', 'alpha'].forEach((k) => { if (e[k] !== undefined) st[k] = e[k]; });
+      ['x', 'y', 'expr', 'facing', 'hold', 'visible', 'depth', 'alpha'].forEach((k) => { if (e[k] !== undefined) st[k] = e[k]; });
     } else if (e.type === 'move') {
       const k = clamp((T - e.t) / Math.max(.01, e.t1 - e.t));
       st.facing = e.x1 >= e.x0 ? 'right' : 'left';
       if (T < e.t1) {
         if (st.pose !== e.pose) setPose(e.pose, e.t);
-        st.x = lerp(e.x0, e.x1, k);
+        st.x = lerp(e.x0, e.x1, k); if (e.y1 !== undefined) st.y = lerp(e.y0 || 0, e.y1, k);
         st.walkPhase = Math.abs(st.x - e.x0) * VW / (e.pose === 'run' ? 60 : 38);
         if (e.visibleDuring !== undefined) st.visible = true;
       } else {
-        st.x = e.x1; setPose(e.after || 'stand', e.t1);
+        st.x = e.x1; if (e.y1 !== undefined) st.y = e.y1; setPose(e.after || 'stand', e.t1);
         if (e.hideAfter) st.visible = false;
         if (e.faceAfter) st.facing = e.faceAfter;
       }
@@ -73,7 +73,7 @@ function drawScene(D, sc, T) {
   const heads = {};
   for (const { id, st } of states) {
     const spec = D.cast[id] || { kind: 'human' }, d = st.depth || 0, u = u0 * (1 - d * .3) * (spec.scale || 1);
-    const ax = st.x * VW, ay = floorY - d * VH * .07 + (st.lift || 0);
+    const ax = st.x * VW, ay = floorY - d * VH * .07 - (st.y || 0) * VH;
     heads[id] = [ax, ay - charHeight(spec) * u, u];
     g.save(); g.translate(ax, ay); g.scale(u, u); if (st.alpha !== undefined) g.globalAlpha = st.alpha;
     const look = st.facing === 'left' ? -.5 : st.facing === 'right' ? .5 : 0;

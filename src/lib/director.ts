@@ -34,6 +34,7 @@ PEOPLE are built from parts:
   THINGS TO HOLD ("hold"): ${C.held.join(", ")}.
 ANIMALS & CREATURES (kind): ${C.animals.join(", ")}. Their poses: ${C.animal_poses.join(", ")}. Faces for animals: neutral, happy, scared, angry, sleeping.
 PROPS (placed on the ground at x; "front": true draws it in front of characters): ${C.props.join(", ")}.
+  place options (scene "options"): yard {"rural": true|false, "houseColor": "#hex"}, lounge {"tv": true|false}, bedroom {"doorOpen": 0..1}, classroom {"board": "text"}, bar/shop {"sign": "text"}.
   prop options: "color", "text" (for sign/tv), "on" (tv/lamp/streetlight/rocket), "open" (door 0..1), "items" (table only: list of food, bottle, cup, glass, book, money, meat), "scale", "flip".
 EFFECTS: ${C.effects.join(", ")}. Effects that sit at a character ("at": id): ${C.point_effects.join(", ")}. Others fill the screen.
 SOUND EFFECTS: ${C.sfx.join(", ")}.
@@ -60,7 +61,7 @@ const SCENE_RULES = `You are the director of Story Studio. Turn ONE scene of a s
 {"props": [{"type": "...", "x": 0.0}], "actors": [{"id": "...", "x": 0.3, "pose": "stand", "face": "neutral", "facing": "right", "hold": null}], "beats": [ ... ], "end_state": "one sentence: who is where at the end"}
 Beat types (one object each, run in order):
  {"say": "narrator" | character id, "text": "...", "face": "...", "pose": "...", "to": "listener id", "offscreen": false}
- {"do": id, "pose": "...", "face": "...", "facing": "left|right|front", "hold": "...", "wait": seconds}
+ {"do": id, "pose": "...", "face": "...", "facing": "left|right|front", "hold": "...", "y": 0.4, "visible": true, "wait": seconds}
  {"move": id, "to": x or spot name or another id, "pose": "walk|run|sneak", "then": "pose after arriving"}
  {"enter": id, "from": "left|right", "to": x, "pose": "walk|run"}      {"exit": id, "to": "left|right", "pose": "walk|run"}
  {"sfx": "sound name"}   {"effect": "name", "at": id or x, "time": seconds}   {"camera": "zoom|wide|shake", "on": id, "amount": 1.5}
@@ -69,7 +70,12 @@ Beat types (one object each, run in order):
  Add "with": true to a beat to make it happen at the same time as the beat before it.
 How to direct:
 - Use the scene text faithfully: narration lines keep the author's words; dialogue goes to the character who says it. Split long narration into lines of at most ~30 words. Do not skip any of the scene text.
+- Drop speech tags: never make a line that is only "he said", "she asked", "Gogo shouted" etc. The caption already shows who is speaking. Fold the action into the beat instead (e.g. "with her hands on her hips" becomes pose "angry").
+- SHOW what the words describe. If the text mentions a character, animal or object at a moment, it must be visible then: put it in "actors"/"props", or "enter" it, or reveal it with {"do": id, "visible": true}. The punchline of a story must be on screen. Add extra unnamed cast (more chickens, people in a crowd, other dogs) when the text implies them; give them ids like "chicken2".
+- Height: "y" lifts a character off the ground, as a fraction of the screen height. On a roof y≈0.35-0.45 (stand them over the house), on a table y≈0.15, in a tree y≈0.3. You can set "y" in "actors", in "do", and in "move" (to climb or jump down).
 - Make it ALIVE: characters react while others talk (faces, poses), walk to each other, enter and exit, use props. Add sound effects where the story implies them (knock, door_open, phone_ring, footsteps, thunder, laugh_track for comedy, sting for scares). Use effects for big moments (exclamation, question, hearts, shock, pow, sweat). Use camera zoom for dramatic lines, then camera wide.
+- Big things: vehicles (car, bakkie, taxi, truck) go near an edge (x below 0.15 or above 0.85) or behind the characters with "depth": 0.6, and use "scale": 0.7. Prefer "bakkie" for a pickup. Never park a vehicle in front of the action.
+- Places: for someone's home outside (yard, garden, behind the house) use "yard" (options {"rural": true} for a village or farm home like in KZN, {"rural": false} for a township home). Use "farm" only for a real farm.
 - Positions: x between 0.08 and 0.92. Keep characters at least 0.12 apart, and at least 0.1 away from props like a fire or table. Characters who are talking should face each other.
 - Only characters listed in "actors" are on screen at the start; others must "enter". Characters can only say lines if they are in the cast (or "narrator").
 - Use only library names. Faces and poses must come from the lists.`;

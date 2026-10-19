@@ -34,7 +34,8 @@
   "space",
   "cave",
   "wedding",
-  "gym"
+  "gym",
+  "yard"
  ],
  "places_meta": {
   "bedroom": {
@@ -384,6 +385,20 @@
     "right": 0.8
    },
    "indoor": true
+  },
+  "yard": {
+   "spots": {
+    "house": 0.3,
+    "door": 0.3,
+    "tank": 0.08,
+    "line": 0.72,
+    "gate": 0.92,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "roof": 0.3
+   },
+   "indoor": false
   }
  },
  "poses": [
@@ -594,6 +609,12 @@
   "robot"
  ],
  "props": [
+  "bakkie",
+  "water_tank",
+  "washing_line",
+  "chicken_coop",
+  "rondavel",
+  "braai",
   "car",
   "taxi",
   "truck",

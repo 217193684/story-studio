@@ -48,6 +48,9 @@ ALIASES = {
 }
 
 
+SPEECH_TAG = re.compile(r"^\W*(he|she|they|i|we|you|it|[A-Z][\w']*(\s[A-Z][\w']*)?)\s+(said|asked|shouted|whispered|replied|added|called|yelled|laughed|cried|answered|screamed|muttered|told \w+)\W*$", re.I)
+
+
 class Report:
     def __init__(self): self.items = []
     def swap(self, what, asked, used):
@@ -191,6 +194,9 @@ def compile_plan(plan, out_dir, log=print):
               "title": S.get("title"), "props": [], "propEvents": [], "actors": {}, "camera": [], "effects": []}
         for p in S.get("props", []):
             pt = nearest(p.get("type"), CAT["props"], "prop", rep, "box")
+            if pt in ("truck", "bus", "taxi", "ambulance", "police_car", "car", "bakkie", "boat", "rocket"):
+                if p.get("scale") is None: p = {**p, "scale": .62}
+                if p.get("depth") is None and .2 < float(p.get("x", .5) if isinstance(p.get("x", .5), (int, float)) else .5) < .8: p = {**p, "depth": .6}
             sc["props"].append({"type": pt, "x": spot_x(place, p.get("x", .5)), "front": bool(p.get("front")), "color": p.get("color"), "text": p.get("text"),
                                 "scale": p.get("scale", 1), "depth": p.get("depth", 0), "on": p.get("on", True), "open": p.get("open", 0), "flip": p.get("flip", False), "items": p.get("items")})
         cur = {}
@@ -199,7 +205,7 @@ def compile_plan(plan, out_dir, log=print):
             if aid not in cast: cast[aid] = norm_cast({"id": aid}, rep, len(cast)); voices[aid] = MALE[len(voices) % len(MALE)]
             init = {"x": spot_x(place, a.get("x", .5)), "pose": nearest(a.get("pose", "stand"), CAT["poses"], "pose", rep, "stand"),
                     "expr": nearest(a.get("face", "neutral"), CAT["exprs"], "face", rep, "neutral"), "facing": a.get("facing") or ("right" if spot_x(place, a.get("x", .5)) < .5 else "left"),
-                    "hold": nearest(a.get("hold"), CAT["held"], "held item", rep) if a.get("hold") else None, "visible": a.get("visible", True), "depth": a.get("depth", 0)}
+                    "hold": nearest(a.get("hold"), CAT["held"], "held item", rep) if a.get("hold") else None, "visible": a.get("visible", True), "depth": a.get("depth", 0), "y": float(a.get("y", 0) or 0)}
             if cast[aid]["kind"] != "human" and init["pose"] not in ("stand", "walk", "run", "sit", "lie", "sleep", "eat", "jump", "fly"): init["pose"] = "stand"
             sc["actors"][aid] = {"init": init, "events": []}; cur[aid] = dict(init)
 
@@ -224,7 +230,7 @@ def compile_plan(plan, out_dir, log=print):
             dur = .2
             if "say" in b:
                 who = b["say"]; text = str(b.get("text", "")).strip()
-                if not text: continue
+                if not text or SPEECH_TAG.match(text): continue
                 if who is None or str(who).lower() in ("narrator", "narration", "voiceover"):
                     a = tts(text, nv, .96 if style != "horror" else .9)
                     voice_clips.append((bs + .05, a, 1.0))
@@ -261,6 +267,7 @@ def compile_plan(plan, out_dir, log=print):
                 if b.get("facing") in ("left", "right", "front"): kw["facing"] = b["facing"]
                 if "hold" in b: kw["hold"] = nearest(b["hold"], CAT["held"], "held item", rep) if b["hold"] else None
                 if b.get("visible") is not None: kw["visible"] = bool(b["visible"])
+                if b.get("y") is not None: kw["y"] = float(b["y"])
                 if not cur[who].get("visible", True) and kw.get("visible") is None: kw["visible"] = True
                 if kw: ev(who, bs, **kw)
                 dur = float(b.get("wait", 1.0))
@@ -277,6 +284,7 @@ def compile_plan(plan, out_dir, log=print):
                 speed = {"walk": .17, "run": .42, "sneak": .09}[p] * float(b.get("speed", 1))
                 d = max(.6, abs(x1 - x0) / speed)
                 e = {"t": round(bs, 3), "t1": round(bs + d, 3), "type": "move", "x0": x0, "x1": x1, "pose": p, "after": pose_for(who, b.get("then", "stand"))}
+                if b.get("y") is not None: e["y0"] = float(cur[who].get("y", 0) or 0); e["y1"] = float(b["y"]); cur[who]["y"] = e["y1"]
                 if "exit" in b: e["hideAfter"] = True
                 if b.get("face_after"): e["faceAfter"] = b["face_after"]
                 sc["actors"][who]["events"].append(e); cur[who].update({"x": x1, "pose": e["after"], "facing": "right" if x1 > x0 else "left"})

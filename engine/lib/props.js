@@ -1,5 +1,5 @@
 /* Story Studio — props. drawProp(kind, x, groundY, u, t, o): u = pixels per unit (an adult is 310 units tall). */
-const PROP_NAMES = ['car', 'taxi', 'truck', 'bicycle', 'tree', 'palm', 'acacia', 'pine', 'dead_tree', 'bush', 'rock', 'bench', 'table', 'chair', 'sofa', 'bed', 'tv', 'lamp', 'plant', 'fridge', 'desk', 'door', 'fence', 'cactus', 'tombstone', 'coffin', 'campfire', 'tent', 'sign', 'stall', 'trashcan', 'streetlight', 'barrel', 'haybale', 'well', 'piano', 'drums', 'mic_stand', 'money_bag', 'treasure', 'cake', 'gift', 'balloons', 'ufo', 'rocket', 'ladder', 'ball', 'box', 'boxes', 'wanted_poster', 'horse_post', 'speaker', 'christmas_tree', 'coffee_table', 'wardrobe', 'computer', 'phone_booth', 'atm', 'cart', 'shopping_cart', 'motorbike', 'police_car', 'ambulance', 'boat', 'snowman', 'throne', 'mirror', 'clock', 'grave_hole', 'crystal_ball', 'cauldron', 'pot'];
+const PROP_NAMES = ['bakkie', 'water_tank', 'washing_line', 'chicken_coop', 'rondavel', 'braai', 'car', 'taxi', 'truck', 'bicycle', 'tree', 'palm', 'acacia', 'pine', 'dead_tree', 'bush', 'rock', 'bench', 'table', 'chair', 'sofa', 'bed', 'tv', 'lamp', 'plant', 'fridge', 'desk', 'door', 'fence', 'cactus', 'tombstone', 'coffin', 'campfire', 'tent', 'sign', 'stall', 'trashcan', 'streetlight', 'barrel', 'haybale', 'well', 'piano', 'drums', 'mic_stand', 'money_bag', 'treasure', 'cake', 'gift', 'balloons', 'ufo', 'rocket', 'ladder', 'ball', 'box', 'boxes', 'wanted_poster', 'horse_post', 'speaker', 'christmas_tree', 'coffee_table', 'wardrobe', 'computer', 'phone_booth', 'atm', 'cart', 'shopping_cart', 'motorbike', 'police_car', 'ambulance', 'boat', 'snowman', 'throne', 'mirror', 'clock', 'grave_hole', 'crystal_ball', 'cauldron', 'pot'];
 
 function drawProp(kind, x, gy, u, t = 0, o = {}) {
   g.save(); g.translate(x, gy); g.scale(u * (o.flip ? -1 : 1), u);
@@ -8,6 +8,12 @@ function drawProp(kind, x, gy, u, t = 0, o = {}) {
     case 'car': case 'police_car': case 'ambulance': vehicle(kind === 'ambulance' ? 'van' : 'car', c || (kind === 'police_car' ? '#f8fafc' : kind === 'ambulance' ? '#f8fafc' : '#dc2626'), t, o, kind); break;
     case 'taxi': vehicle('van', c || '#f8fafc', t, o, 'taxi'); break;
     case 'truck': vehicle('truck', c || '#2563eb', t, o, 'truck'); break;
+    case 'bakkie': vehicle('bakkie', c || '#e5e7eb', t, o, 'bakkie'); break;
+    case 'water_tank': rr(-110, -330, 220, 330, 30); g.fillStyle = c || '#15803d'; g.fill(); for (let i = 1; i < 6; i++) line(-110, -330 + i * 55, 110, -330 + i * 55, shade(c || '#15803d', -.2), 4); ellipse(0, -330, 110, 20, shade(c || '#15803d', .15)); rr(-130, -20, 260, 20, 4); g.fillStyle = '#9ca3af'; g.fill(); break;
+    case 'washing_line': line(-260, 0, -260, -300, '#6b7280', 8); line(260, 0, 260, -300, '#6b7280', 8); g.strokeStyle = '#9ca3af'; g.lineWidth = 3; g.beginPath(); g.moveTo(-260, -290); g.quadraticCurveTo(0, -250, 260, -290); g.stroke(); [['#dc2626', -180], ['#2563eb', -60], ['#facc15', 60], ['#f8fafc', 170]].forEach(([cc, x], i) => { const sw = Math.sin(t * 2 + i) * 4; rr(x - 40 + sw, -280 + Math.abs(x) * .06, 80, 100 - i * 8, 6); g.fillStyle = cc; g.fill(); }); break;
+    case 'chicken_coop': rr(-150, -200, 300, 200, 6); g.fillStyle = '#92400e'; g.fill(); poly([[-170, -200], [0, -290], [170, -200]], '#7f1d1d'); g.fillStyle = '#1c1917'; g.fillRect(-40, -110, 80, 110); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2; for (let i = -140; i < 150; i += 20) line(i, -190, i, -10, 'rgba(255,255,255,.25)', 2); break;
+    case 'rondavel': rr(-200, -280, 400, 280, 10); g.fillStyle = c || '#f5f5f4'; g.fill(); g.fillStyle = shade(c || '#f5f5f4', -.12); g.fillRect(-200, -60, 400, 60); poly([[-240, -270], [0, -470], [240, -270]], '#a16207'); for (let i = 0; i < 12; i++) line(-230 + i * 40, -275, -i * 3, -460, '#854d0e', 3); rr(-45, -190, 90, 190, [45, 45, 0, 0]); g.fillStyle = '#3f2a1c'; g.fill(); break;
+    case 'braai': rr(-120, -150, 240, 40, 8); g.fillStyle = '#1f2937'; g.fill(); line(-100, -110, -110, 0, '#374151', 8); line(100, -110, 110, 0, '#374151', 8); for (let i = 0; i < 4; i++) { ellipse(-75 + i * 50, -158, 22, 9, i % 2 ? '#7c2d12' : '#9a3412'); } for (let i = 0; i < 3; i++) { const k = (t * .7 + i / 3) % 1; circle(-40 + i * 40 + Math.sin(k * 6) * 10, -180 - k * 140, 14 + k * 26, `rgba(200,200,200,${.4 * (1 - k)})`); } break;
     case 'bicycle': case 'motorbike': { const spin = (o.moving ? t * 8 : 0); [[-110, 0], [110, 0]].forEach(([wx]) => { g.save(); g.translate(wx, -60); g.rotate(spin); circle(0, 0, 60); g.strokeStyle = '#111'; g.lineWidth = 10; g.stroke(); for (let i = 0; i < 4; i++) line(0, 0, Math.cos(i * .8) * 56, Math.sin(i * .8) * 56, '#6b7280', 3); g.restore(); }); g.strokeStyle = c || '#16a34a'; g.lineWidth = 12; g.beginPath(); g.moveTo(-110, -60); g.lineTo(-20, -140); g.lineTo(80, -140); g.lineTo(110, -60); g.moveTo(-20, -140); g.lineTo(10, -60); g.lineTo(-110, -60); g.stroke(); if (kind === 'motorbike') { rr(-70, -175, 150, 60, 25); g.fillStyle = c || '#111827'; g.fill(); } line(80, -140, 70, -190, '#111', 8); line(55, -195, 95, -190, '#111', 8); break; }
     case 'tree': treeShape(0, 0, 3.4, c || '#15803d'); break;
     case 'palm': treeShape(0, 0, 3.2, '#16a34a', 'palm'); break;
@@ -90,6 +96,11 @@ function vehicle(shape, c, t, o, kind) {
     rr(330, -350, 90, 120, 14); g.fill();
     g.fillStyle = kind === 'taxi' ? '#1d4ed8' : '#dc2626'; g.fillRect(-440, -220, 880, 26);
     if (kind === 'ambulance') { g.fillStyle = '#dc2626'; g.fillRect(-60, -250, 120, 30); g.fillRect(-15, -295, 30, 120); rr(-30, -410, 60, 30, 6); g.fillStyle = Math.sin(t * 12) > 0 ? '#ef4444' : '#60a5fa'; g.fill(); }
+  } else if (shape === 'bakkie') {
+    rr(-400, -230, 800, 140, 26); g.fillStyle = c; g.fill();
+    g.beginPath(); g.moveTo(40, -230); g.lineTo(90, -350); g.lineTo(300, -350); g.lineTo(370, -230); g.closePath(); g.fill();
+    g.fillStyle = '#bfdbfe'; poly([[70, -235], [108, -330], [290, -330], [345, -235]]); g.fill();
+    g.fillStyle = shade(c, -.25); g.fillRect(-390, -250, 400, 22); g.fillStyle = shade(c, -.12); g.fillRect(-400, -230, 420, 10);
   } else {
     rr(-460, -420, 560, 330, 10); g.fillStyle = '#e5e7eb'; g.fill(); rr(110, -330, 230, 240, 30); g.fillStyle = c; g.fill(); rr(170, -310, 140, 90, 10); g.fillStyle = '#bfdbfe'; g.fill();
   }

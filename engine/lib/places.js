@@ -293,4 +293,17 @@ const PLACES = {
     txt('NO PAIN NO GAIN', x + w * .5, y + h * .32, h * .06, '#ef4444', 900, 'center');
   } },
 };
+PLACES.yard = { floor: .88, size: .44, spots: { house: .3, door: .3, tank: .08, line: .72, gate: .92, left: .2, center: .5, right: .8, roof: .3 }, draw(x, y, w, h, t, o) {
+  sky(x, y, w, h * .75, o.tod, t); hills(x, y, w, h, y + h * .58, o.rural === false ? '#a3a36b' : '#6aa84f', h * .08, 14);
+  if (o.rural !== false) { treeShape(x + w * .62, y + h * .62, .6, '#4d7c0f', 'acacia'); for (let i = 0; i < 3; i++) drawProp('rondavel', x + w * (.52 + i * .12), y + h * .6, h / 4200, t, { color: ['#fde68a', '#f5f5f4', '#fecaca'][i] }); }
+  const hx = x + w * .14, hw = w * .34, hy = y + h * .4, hh = h * .4;
+  g.fillStyle = o.houseColor || '#f5e6c8'; g.fillRect(hx, hy, hw, hh); g.fillStyle = shade(o.houseColor || '#f5e6c8', -.1); g.fillRect(hx, hy + hh * .8, hw, hh * .2);
+  poly([[hx - 16, hy + 4], [hx + hw / 2, hy - hh * .32], [hx + hw + 16, hy + 4]], '#9ca3af'); for (let i = 0; i < 14; i++) line(hx - 10 + i * hw / 13, hy, hx + hw / 2 + (i - 6.5) * 4, hy - hh * .3, '#6b7280', 2);
+  const lit = o.tod === 'night' || o.tod === 'evening'; g.fillStyle = lit ? '#ffd37a' : '#bfdbfe'; g.fillRect(hx + hw * .1, hy + hh * .25, hw * .22, hh * .25); g.fillRect(hx + hw * .68, hy + hh * .25, hw * .22, hh * .25);
+  g.fillStyle = '#3f2a1c'; g.fillRect(hx + hw * .42, hy + hh * .38, hw * .16, hh * .62);
+  ground(x, y, w, h, .8, o.rural === false ? '#b08968' : '#9c8a5a', 'dirt');
+  const u = h * .44 / 310; drawProp('water_tank', x + w * .05, y + h * .82, u * .9, t); drawProp('washing_line', x + w * .74, y + h * .84, u * .8, t);
+  for (let i = 0; i < 16; i++) { g.fillStyle = '#a16207'; g.fillRect(x + w * (.86 + i * .009), y + h * .7, 4, h * .14); } line(x + w * .86, y + h * .73, x + w, y + h * .73, '#a16207', 3);
+  nightShade(x, y, w, h, o.tod);
+} };
 const PLACE_NAMES = Object.keys(PLACES);
