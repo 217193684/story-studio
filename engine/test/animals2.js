@@ -1,0 +1,2 @@
+g.fillStyle='#e8eef3';g.fillRect(0,0,1600,900);
+['dog','cat','lion','cow','horse','elephant','goat','pig'].forEach((k,i)=>{['sit','stand','lie'].forEach((p,j)=>{const cx=110+i*195,fy=230+j*300;g.save();g.translate(cx,fy);const s=k=='elephant'?.5:k=='horse'||k=='cow'||k=='lion'?.62:.9;g.scale(s,s);drawAnimal({kind:k,name:k},{t:1,pose:p,expr:'happy'});g.restore();txt(k+' '+p,cx,fy+22,15,'#334155',700,'center')})});

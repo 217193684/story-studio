@@ -1,0 +1,45 @@
+{
+ "title": "High Noon at Dusty Creek",
+ "subtitle": "A Western",
+ "style": "western",
+ "cast": [
+  {"id":"mae","name":"Sheriff Mae","gender":"f","skin":5,"hair":"ponytail","hairColor":"auburn","outfit":"sheriff"},
+  {"id":"jack","name":"Black Jack","gender":"m","skin":7,"hair":"short","hairColor":"darkbrown","beard":"beard","outfit":"outlaw","build":"big"},
+  {"id":"sam","name":"Sam","gender":"m","skin":1,"hair":"bald","beard":"moustache","outfit":"waiter","age":"old"},
+  {"id":"thunder","name":"Thunder","kind":"horse"}
+ ],
+ "scenes": [
+  {"place":"western_town","time":"day","mood":"western","weather":"dust",
+   "props":[{"type":"horse_post","x":0.9},{"type":"barrel","x":0.08}],
+   "actors":[{"id":"thunder","x":0.88,"pose":"stand"}],
+   "beats":[
+    {"say":"narrator","text":"Dusty Creek was a quiet town. Until the day Black Jack came back."},
+    {"effect":"tumbleweed","time":5,"wait":0.5},
+    {"enter":"jack","from":"left","to":0.3,"pose":"walk"},
+    {"enter":"mae","from":"right","to":0.68,"pose":"walk","with":true},
+    {"camera":"zoom","on":"jack","amount":1.6},
+    {"say":"jack","text":"Well, well. The new sheriff. This town ain't big enough for the two of us.","face":"evil","pose":"talk"},
+    {"camera":"zoom","on":"mae","amount":1.6},
+    {"say":"mae","text":"Then I reckon you better start walking, Jack.","face":"determined"},
+    {"camera":"wide"},
+    {"do":"jack","pose":"shoot","face":"angry","wait":0.2},
+    {"do":"mae","pose":"shoot","face":"serious","with":true,"wait":1.4},
+    {"sfx":"heartbeat","wait":1.8},
+    {"do":"thunder","pose":"eat","wait":0.3},
+    {"say":"sam","text":"Lunch is ready! Free stew for everybody!","pose":"wave","face":"happy"},
+    {"do":"jack","pose":"stand","face":"surprised","wait":0.3},
+    {"do":"mae","pose":"stand","face":"surprised","with":true},
+    {"say":"jack","text":"Free... stew?","face":"love"},
+    {"exit":"jack","to":"left","pose":"run"},
+    {"exit":"mae","to":"left","pose":"run","with":true}
+   ]},
+  {"place":"saloon","time":"day","mood":"happy","title":"Inside the saloon",
+   "actors":[{"id":"jack","x":0.25,"pose":"eat","face":"happy","facing":"right"},{"id":"mae","x":0.45,"pose":"eat","face":"happy","facing":"left"},{"id":"sam","x":0.82,"pose":"stand","face":"proud"}],
+   "beats":[
+    {"say":"mae","text":"You know, Jack... this is good stew.","face":"happy"},
+    {"say":"jack","text":"Best in the West. Maybe this town is big enough for both of us.","face":"laugh"},
+    {"effect":"music","at":"sam","time":3},
+    {"say":"narrator","text":"And that is how the toughest standoff in Dusty Creek ended. With two bowls of stew."}
+   ]}
+ ]
+}

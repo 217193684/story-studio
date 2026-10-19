@@ -1,0 +1,293 @@
+{
+ "title": "Who Ate the Braai Meat?",
+ "subtitle": "A Mzansi comedy",
+ "style": "comedy",
+ "cast": [
+  {
+   "id": "sipho",
+   "name": "Sipho",
+   "gender": "m",
+   "skin": 1,
+   "hair": "short",
+   "outfit": "casual",
+   "colors": {
+    "top": "#16a34a"
+   },
+   "build": "big"
+  },
+  {
+   "id": "lerato",
+   "name": "Lerato",
+   "gender": "f",
+   "skin": 3,
+   "hair": "braids",
+   "outfit": "dress",
+   "colors": {
+    "top": "#f59e0b",
+    "bottom": "#f59e0b"
+   }
+  },
+  {
+   "id": "chen",
+   "name": "Mr Chen",
+   "gender": "m",
+   "skin": 6,
+   "eyes": "almond",
+   "hair": "sidepart",
+   "outfit": "office",
+   "glasses": true,
+   "age": "old"
+  },
+  {
+   "id": "rex",
+   "name": "Rex",
+   "kind": "dog"
+  }
+ ],
+ "scenes": [
+  {
+   "place": "township",
+   "time": "day",
+   "mood": "comedy",
+   "props": [
+    {
+     "type": "campfire",
+     "x": 0.36
+    },
+    {
+     "type": "table",
+     "x": 0.58,
+     "items": [
+      "meat",
+      "meat",
+      "bottle"
+     ]
+    }
+   ],
+   "actors": [
+    {
+     "id": "sipho",
+     "x": 0.16,
+     "pose": "stand",
+     "face": "happy"
+    }
+   ],
+   "beats": [
+    {
+     "say": "narrator",
+     "text": "Every Saturday, Sipho makes the best braai in the whole street."
+    },
+    {
+     "say": "sipho",
+     "text": "Ayy! Today the meat is perfect. Perfect!",
+     "pose": "cheer",
+     "face": "laugh"
+    },
+    {
+     "enter": "rex",
+     "from": "right",
+     "to": 0.75
+    },
+    {
+     "do": "rex",
+     "pose": "sit",
+     "face": "happy",
+     "wait": 0.6
+    },
+    {
+     "say": "sipho",
+     "text": "No, Rex. This meat is not for dogs.",
+     "pose": "point",
+     "face": "smug",
+     "to": "rex"
+    },
+    {
+     "sfx": "phone_ring",
+     "wait": 1.2
+    },
+    {
+     "say": "sipho",
+     "text": "Hello? Lerato? Okay, okay, I am coming!",
+     "pose": "phone",
+     "face": "surprised"
+    },
+    {
+     "exit": "sipho",
+     "to": "left",
+     "pose": "run"
+    }
+   ]
+  },
+  {
+   "place": "township",
+   "time": "day",
+   "mood": "tense",
+   "title": "Two minutes later...",
+   "props": [
+    {
+     "type": "campfire",
+     "x": 0.36
+    },
+    {
+     "type": "table",
+     "x": 0.58,
+     "items": [
+      "meat",
+      "meat",
+      "bottle"
+     ]
+    }
+   ],
+   "actors": [
+    {
+     "id": "rex",
+     "x": 0.75,
+     "pose": "sit",
+     "face": "happy"
+    }
+   ],
+   "beats": [
+    {
+     "move": "rex",
+     "to": 0.62,
+     "pose": "sneak"
+    },
+    {
+     "do": "rex",
+     "pose": "eat",
+     "wait": 0.4
+    },
+    {
+     "sfx": "drink",
+     "with": true
+    },
+    {
+     "prop": "table",
+     "set": {
+      "items": [
+       "bottle"
+      ]
+     },
+     "with": true
+    },
+    {
+     "effect": "sparkle",
+     "at": "rex",
+     "time": 1.5,
+     "wait": 1.6
+    },
+    {
+     "enter": "chen",
+     "from": "right",
+     "to": 0.85,
+     "pose": "walk"
+    },
+    {
+     "do": "chen",
+     "face": "shocked",
+     "pose": "armsup",
+     "wait": 0.5
+    },
+    {
+     "effect": "exclamation",
+     "at": "chen",
+     "time": 1.2
+    },
+    {
+     "say": "chen",
+     "text": "Rex! What are you doing?! That is Sipho's meat!",
+     "face": "shocked"
+    },
+    {
+     "exit": "rex",
+     "to": "left",
+     "pose": "run"
+    }
+   ]
+  },
+  {
+   "place": "township",
+   "time": "day",
+   "mood": "comedy",
+   "props": [
+    {
+     "type": "campfire",
+     "x": 0.36
+    },
+    {
+     "type": "table",
+     "x": 0.58,
+     "items": []
+    }
+   ],
+   "actors": [
+    {
+     "id": "chen",
+     "x": 0.85,
+     "pose": "stand",
+     "face": "worried"
+    }
+   ],
+   "beats": [
+    {
+     "enter": "sipho",
+     "from": "left",
+     "to": 0.18,
+     "pose": "walk"
+    },
+    {
+     "enter": "lerato",
+     "from": "left",
+     "to": 0.06,
+     "pose": "walk",
+     "with": true
+    },
+    {
+     "camera": "zoom",
+     "on": "sipho",
+     "amount": 1.5
+    },
+    {
+     "do": "sipho",
+     "face": "shocked",
+     "pose": "armsup",
+     "wait": 0.4
+    },
+    {
+     "effect": "shock",
+     "at": "sipho",
+     "time": 1.0
+    },
+    {
+     "say": "sipho",
+     "text": "Where... is... my... meat?!",
+     "face": "angry",
+     "pose": "angry",
+     "speed": 0.85
+    },
+    {
+     "camera": "wide"
+    },
+    {
+     "say": "chen",
+     "text": "It was Rex! He ate everything and ran that way!",
+     "pose": "pointfront",
+     "face": "scared"
+    },
+    {
+     "say": "lerato",
+     "text": "Haibo! Sipho, I told you to keep the meat inside!",
+     "pose": "laugh",
+     "face": "laugh"
+    },
+    {
+     "sfx": "boing"
+    },
+    {
+     "say": "narrator",
+     "text": "And that is why, from that day, Sipho braais with one eye on the meat, and one eye on Rex."
+    }
+   ]
+  }
+ ]
+}

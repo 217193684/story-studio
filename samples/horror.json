@@ -1,0 +1,219 @@
+{
+ "title": "The Last Walk Home",
+ "subtitle": "A short horror story",
+ "style": "horror",
+ "cast": [
+  {
+   "id": "nomsa",
+   "name": "Nomsa",
+   "gender": "f",
+   "age": "teen",
+   "skin": 2,
+   "hair": "puffs",
+   "outfit": "hoodie",
+   "colors": {
+    "top": "#7c3aed"
+   }
+  },
+  {
+   "id": "ghost",
+   "name": "???",
+   "kind": "ghost"
+  }
+ ],
+ "scenes": [
+  {
+   "place": "street",
+   "time": "night",
+   "mood": "scary",
+   "weather": "fog",
+   "actors": [],
+   "beats": [
+    {
+     "say": "narrator",
+     "text": "It was almost midnight when Nomsa started the long walk home."
+    },
+    {
+     "enter": "nomsa",
+     "from": "left",
+     "to": 0.45,
+     "pose": "walk"
+    },
+    {
+     "do": "nomsa",
+     "pose": "phone",
+     "face": "neutral",
+     "wait": 0.2
+    },
+    {
+     "say": "nomsa",
+     "text": "Mama, I'm almost home. The street is so dark tonight."
+    },
+    {
+     "sfx": "footsteps",
+     "volume": 0.9,
+     "wait": 1.6
+    },
+    {
+     "do": "nomsa",
+     "pose": "stand",
+     "facing": "left",
+     "face": "scared",
+     "wait": 0.3
+    },
+    {
+     "effect": "question",
+     "at": "nomsa",
+     "time": 1.5
+    },
+    {
+     "say": "nomsa",
+     "text": "Hello? Is somebody there?",
+     "face": "scared"
+    },
+    {
+     "wait": 1.2
+    },
+    {
+     "say": "narrator",
+     "text": "Nobody answered. But the footsteps... kept coming."
+    },
+    {
+     "exit": "nomsa",
+     "to": "right",
+     "pose": "run"
+    }
+   ]
+  },
+  {
+   "place": "haunted_house",
+   "time": "night",
+   "mood": "scary",
+   "actors": [
+    {
+     "id": "ghost",
+     "x": 0.85,
+     "visible": false
+    }
+   ],
+   "beats": [
+    {
+     "enter": "nomsa",
+     "from": "left",
+     "to": 0.3,
+     "pose": "run"
+    },
+    {
+     "do": "nomsa",
+     "pose": "tired",
+     "face": "scared",
+     "wait": 0.8
+    },
+    {
+     "say": "ghost",
+     "text": "Nomsaaa...",
+     "speed": 0.7,
+     "offscreen": true
+    },
+    {
+     "do": "nomsa",
+     "pose": "scared",
+     "face": "shocked",
+     "wait": 0.2
+    },
+    {
+     "do": "ghost",
+     "visible": true,
+     "with": true
+    },
+    {
+     "move": "ghost",
+     "to": 0.62,
+     "pose": "walk",
+     "speed": 0.6
+    },
+    {
+     "effect": "flash",
+     "time": 0.4,
+     "with": true
+    },
+    {
+     "sfx": "sting",
+     "with": true
+    },
+    {
+     "camera": "shake",
+     "time": 0.8
+    },
+    {
+     "say": "ghost",
+     "text": "You walk alone... on my street.",
+     "speed": 0.8,
+     "face": "evil"
+    },
+    {
+     "say": "nomsa",
+     "text": "No, no, no!",
+     "face": "scared",
+     "pose": "run"
+    },
+    {
+     "exit": "nomsa",
+     "to": "left",
+     "pose": "run"
+    }
+   ]
+  },
+  {
+   "place": "bedroom",
+   "time": "night",
+   "mood": "tense",
+   "title": "Home. Safe... ?",
+   "actors": [
+    {
+     "id": "nomsa",
+     "x": 0.62,
+     "pose": "stand",
+     "face": "worried",
+     "facing": "left"
+    }
+   ],
+   "beats": [
+    {
+     "say": "nomsa",
+     "text": "I'm home. I'm safe. It was just my imagination.",
+     "face": "nervous"
+    },
+    {
+     "sfx": "knock",
+     "wait": 0.5
+    },
+    {
+     "effect": "knock",
+     "at": 0.42,
+     "y": 0.33,
+     "time": 1.2
+    },
+    {
+     "sfx": "knock",
+     "wait": 0.5
+    },
+    {
+     "do": "nomsa",
+     "pose": "scared",
+     "face": "shocked",
+     "facing": "left",
+     "wait": 0.4
+    },
+    {
+     "say": "narrator",
+     "text": "But Nomsa lives on the second floor."
+    },
+    {
+     "effect": "blackout",
+     "time": 2.5
+    }
+   ]
+  }
+ ]
+}

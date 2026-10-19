@@ -1,0 +1,856 @@
+{
+ "places": [
+  "bedroom",
+  "lounge",
+  "kitchen",
+  "office",
+  "classroom",
+  "bar",
+  "club",
+  "restaurant",
+  "shop",
+  "street",
+  "township",
+  "taxi_rank",
+  "city",
+  "construction",
+  "farm",
+  "bush",
+  "forest",
+  "beach",
+  "hospital",
+  "police_station",
+  "church",
+  "graveyard",
+  "western_town",
+  "desert",
+  "saloon",
+  "park",
+  "road",
+  "stage",
+  "haunted_house",
+  "hallway",
+  "jail",
+  "space",
+  "cave",
+  "wedding",
+  "gym"
+ ],
+ "places_meta": {
+  "bedroom": {
+   "spots": {
+    "bed": 0.16,
+    "window": 0.42,
+    "door": 0.86,
+    "center": 0.6,
+    "left": 0.25,
+    "right": 0.75
+   },
+   "indoor": true
+  },
+  "lounge": {
+   "spots": {
+    "sofa": 0.48,
+    "tv": 0.14,
+    "window": 0.74,
+    "door": 0.92,
+    "center": 0.5,
+    "left": 0.3,
+    "right": 0.7
+   },
+   "indoor": true
+  },
+  "kitchen": {
+   "spots": {
+    "stove": 0.22,
+    "fridge": 0.08,
+    "table": 0.65,
+    "window": 0.45,
+    "center": 0.55,
+    "left": 0.3,
+    "right": 0.8
+   },
+   "indoor": true
+  },
+  "office": {
+   "spots": {
+    "desk": 0.3,
+    "desk2": 0.7,
+    "window": 0.5,
+    "door": 0.92,
+    "center": 0.5,
+    "left": 0.2,
+    "right": 0.8
+   },
+   "indoor": true
+  },
+  "classroom": {
+   "spots": {
+    "board": 0.4,
+    "teacher": 0.18,
+    "desks": 0.65,
+    "door": 0.92,
+    "center": 0.5,
+    "left": 0.25,
+    "right": 0.75
+   },
+   "indoor": true
+  },
+  "bar": {
+   "spots": {
+    "counter": 0.4,
+    "stool1": 0.3,
+    "stool2": 0.5,
+    "door": 0.9,
+    "center": 0.6,
+    "left": 0.2,
+    "right": 0.78
+   },
+   "indoor": true
+  },
+  "club": {
+   "spots": {
+    "dj": 0.5,
+    "floor": 0.3,
+    "floor2": 0.7,
+    "left": 0.2,
+    "right": 0.8,
+    "center": 0.5
+   },
+   "indoor": true
+  },
+  "restaurant": {
+   "spots": {
+    "table1": 0.25,
+    "table2": 0.7,
+    "door": 0.92,
+    "center": 0.5,
+    "left": 0.2,
+    "right": 0.8
+   },
+   "indoor": true
+  },
+  "shop": {
+   "spots": {
+    "counter": 0.35,
+    "shelf": 0.7,
+    "door": 0.92,
+    "center": 0.55,
+    "left": 0.2,
+    "right": 0.78
+   },
+   "indoor": true
+  },
+  "street": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "house1": 0.15,
+    "house2": 0.5,
+    "house3": 0.85
+   },
+   "indoor": false
+  },
+  "township": {
+   "spots": {
+    "spaza": 0.78,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "house1": 0.12,
+    "house2": 0.4
+   },
+   "indoor": false
+  },
+  "taxi_rank": {
+   "spots": {
+    "left": 0.15,
+    "center": 0.5,
+    "right": 0.85,
+    "taxi1": 0.25,
+    "taxi2": 0.6
+   },
+   "indoor": false
+  },
+  "city": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "construction": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "crane": 0.8
+   },
+   "indoor": false
+  },
+  "farm": {
+   "spots": {
+    "barn": 0.2,
+    "field": 0.7,
+    "left": 0.3,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "bush": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "tree": 0.3
+   },
+   "indoor": false
+  },
+  "forest": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "beach": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "sea": 0.5
+   },
+   "indoor": false
+  },
+  "hospital": {
+   "spots": {
+    "bed": 0.3,
+    "monitor": 0.12,
+    "door": 0.9,
+    "center": 0.55,
+    "left": 0.2,
+    "right": 0.75
+   },
+   "indoor": true
+  },
+  "police_station": {
+   "spots": {
+    "desk": 0.3,
+    "cell": 0.82,
+    "center": 0.5,
+    "left": 0.15,
+    "right": 0.6
+   },
+   "indoor": true
+  },
+  "church": {
+   "spots": {
+    "pulpit": 0.5,
+    "pews": 0.25,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": true
+  },
+  "graveyard": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8,
+    "grave": 0.4
+   },
+   "indoor": false
+  },
+  "western_town": {
+   "spots": {
+    "saloon": 0.3,
+    "sheriff": 0.7,
+    "left": 0.15,
+    "center": 0.5,
+    "right": 0.85
+   },
+   "indoor": false
+  },
+  "desert": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "saloon": {
+   "spots": {
+    "bar": 0.35,
+    "piano": 0.85,
+    "doors": 0.62,
+    "center": 0.5,
+    "left": 0.2,
+    "right": 0.75
+   },
+   "indoor": true
+  },
+  "park": {
+   "spots": {
+    "bench": 0.4,
+    "swing": 0.8,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.85
+   },
+   "indoor": false
+  },
+  "road": {
+   "spots": {
+    "car": 0.5,
+    "left": 0.2,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "stage": {
+   "spots": {
+    "center": 0.5,
+    "left": 0.25,
+    "right": 0.75,
+    "mic": 0.5
+   },
+   "indoor": true
+  },
+  "haunted_house": {
+   "spots": {
+    "door": 0.5,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "hallway": {
+   "spots": {
+    "door1": 0.2,
+    "door2": 0.5,
+    "door3": 0.8,
+    "center": 0.5,
+    "left": 0.15,
+    "right": 0.85
+   },
+   "indoor": true
+  },
+  "jail": {
+   "spots": {
+    "bed": 0.2,
+    "center": 0.5,
+    "bars": 0.9,
+    "left": 0.3,
+    "right": 0.7
+   },
+   "indoor": true
+  },
+  "space": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "cave": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": false
+  },
+  "wedding": {
+   "spots": {
+    "altar": 0.5,
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": true
+  },
+  "gym": {
+   "spots": {
+    "left": 0.2,
+    "center": 0.5,
+    "right": 0.8
+   },
+   "indoor": true
+  }
+ },
+ "poses": [
+  "stand",
+  "idle",
+  "talk",
+  "walk",
+  "run",
+  "sit",
+  "sitfront",
+  "point",
+  "wave",
+  "armsup",
+  "cheer",
+  "shrug",
+  "angry",
+  "think",
+  "phone",
+  "drink",
+  "cry",
+  "laugh",
+  "dance",
+  "scared",
+  "hide",
+  "kneel",
+  "pray",
+  "fight",
+  "carry",
+  "facepalm",
+  "clap",
+  "lie",
+  "sleep",
+  "fall",
+  "jump",
+  "ride",
+  "sneak",
+  "hug",
+  "shoot",
+  "dj",
+  "sing",
+  "read",
+  "eat",
+  "tired",
+  "stop",
+  "pointfront",
+  "hands_up",
+  "torch"
+ ],
+ "exprs": [
+  "neutral",
+  "happy",
+  "laugh",
+  "sad",
+  "cry",
+  "angry",
+  "scared",
+  "shocked",
+  "surprised",
+  "sleepy",
+  "sleeping",
+  "smug",
+  "love",
+  "dizzy",
+  "wink",
+  "confused",
+  "disgusted",
+  "thinking",
+  "evil",
+  "embarrassed",
+  "cool",
+  "worried",
+  "nervous",
+  "excited",
+  "proud",
+  "serious",
+  "bored",
+  "shy",
+  "suspicious",
+  "determined"
+ ],
+ "outfits": [
+  "casual",
+  "shorts",
+  "hoodie",
+  "suit",
+  "dress",
+  "long_dress",
+  "skirt",
+  "worker",
+  "school",
+  "school_girl",
+  "police",
+  "security",
+  "doctor",
+  "nurse",
+  "cowboy",
+  "sheriff",
+  "outlaw",
+  "pajamas",
+  "chef",
+  "african_print",
+  "dashiki",
+  "sport",
+  "party",
+  "farmer",
+  "cardigan",
+  "king",
+  "wedding",
+  "robe",
+  "gym",
+  "office",
+  "office_woman",
+  "taxi_driver",
+  "waiter",
+  "dj",
+  "soldier",
+  "pastor"
+ ],
+ "hairs": [
+  "bald",
+  "buzz",
+  "short",
+  "sidepart",
+  "afro",
+  "puffs",
+  "curly",
+  "braids",
+  "locs",
+  "cornrows",
+  "long",
+  "ponytail",
+  "bun",
+  "mohawk",
+  "headwrap",
+  "hijab",
+  "spiky",
+  "bob"
+ ],
+ "hats": [
+  "none",
+  "cowboy",
+  "cap",
+  "hardhat",
+  "police",
+  "tophat",
+  "beanie",
+  "chef",
+  "crown",
+  "party",
+  "straw",
+  "beret",
+  "helmet"
+ ],
+ "beards": [
+  "none",
+  "beard",
+  "moustache",
+  "goatee",
+  "stubble"
+ ],
+ "eyes": [
+  "round",
+  "almond",
+  "big",
+  "dot"
+ ],
+ "hair_colors": [
+  "black",
+  "darkbrown",
+  "brown",
+  "auburn",
+  "ginger",
+  "blonde",
+  "grey",
+  "white",
+  "blue",
+  "pink",
+  "red",
+  "purple"
+ ],
+ "animals": [
+  "dog",
+  "puppy",
+  "cat",
+  "lion",
+  "cow",
+  "bull",
+  "horse",
+  "donkey",
+  "goat",
+  "sheep",
+  "pig",
+  "elephant",
+  "rabbit",
+  "wolf",
+  "zebra",
+  "giraffe",
+  "chicken",
+  "rooster",
+  "duck",
+  "bird",
+  "crow",
+  "owl",
+  "snake",
+  "fish",
+  "ghost",
+  "monster",
+  "robot"
+ ],
+ "props": [
+  "car",
+  "taxi",
+  "truck",
+  "bicycle",
+  "tree",
+  "palm",
+  "acacia",
+  "pine",
+  "dead_tree",
+  "bush",
+  "rock",
+  "bench",
+  "table",
+  "chair",
+  "sofa",
+  "bed",
+  "tv",
+  "lamp",
+  "plant",
+  "fridge",
+  "desk",
+  "door",
+  "fence",
+  "cactus",
+  "tombstone",
+  "coffin",
+  "campfire",
+  "tent",
+  "sign",
+  "stall",
+  "trashcan",
+  "streetlight",
+  "barrel",
+  "haybale",
+  "well",
+  "piano",
+  "drums",
+  "mic_stand",
+  "money_bag",
+  "treasure",
+  "cake",
+  "gift",
+  "balloons",
+  "ufo",
+  "rocket",
+  "ladder",
+  "ball",
+  "box",
+  "boxes",
+  "wanted_poster",
+  "horse_post",
+  "speaker",
+  "christmas_tree",
+  "coffee_table",
+  "wardrobe",
+  "computer",
+  "phone_booth",
+  "atm",
+  "cart",
+  "shopping_cart",
+  "motorbike",
+  "police_car",
+  "ambulance",
+  "boat",
+  "snowman",
+  "throne",
+  "mirror",
+  "clock",
+  "grave_hole",
+  "crystal_ball",
+  "cauldron",
+  "pot"
+ ],
+ "effects": [
+  "rain",
+  "snow",
+  "lightning",
+  "fog",
+  "dust",
+  "leaves",
+  "fire",
+  "smoke",
+  "explosion",
+  "sparkle",
+  "hearts",
+  "stars",
+  "sweat",
+  "music",
+  "question",
+  "exclamation",
+  "anger",
+  "speed",
+  "confetti",
+  "flash",
+  "blackout",
+  "spotlight",
+  "vignette",
+  "knock",
+  "pow",
+  "boom",
+  "zzz",
+  "magic",
+  "tears",
+  "shock",
+  "money_rain",
+  "bubbles",
+  "tumbleweed",
+  "sunrays",
+  "glitch",
+  "heartbeat",
+  "red_glow",
+  "blood_moon"
+ ],
+ "held": [
+  "phone",
+  "glass",
+  "bottle",
+  "box",
+  "gun",
+  "mic",
+  "book",
+  "food",
+  "money",
+  "torch",
+  "cup",
+  "flower",
+  "bag",
+  "sign",
+  "candle",
+  "umbrella",
+  "knife",
+  "beer"
+ ],
+ "sfx": [
+  "knock",
+  "door_open",
+  "creak",
+  "door_slam",
+  "footsteps",
+  "sting",
+  "boing",
+  "slide_whistle",
+  "slide_down",
+  "punch",
+  "hit",
+  "crash",
+  "gunshot",
+  "thunder",
+  "phone_ring",
+  "car_horn",
+  "engine",
+  "glass",
+  "ding",
+  "bell",
+  "cash",
+  "magic",
+  "heartbeat",
+  "whoosh",
+  "applause",
+  "laugh_track",
+  "dog_bark",
+  "cat_meow",
+  "cow_moo",
+  "rooster",
+  "horse",
+  "siren",
+  "explosion",
+  "splash",
+  "beep",
+  "pop",
+  "clock",
+  "typing",
+  "scream",
+  "evil_laugh",
+  "wind",
+  "rain",
+  "drink",
+  "kiss",
+  "magic_bad",
+  "wow"
+ ],
+ "moods": [
+  "happy",
+  "comedy",
+  "kids",
+  "western",
+  "scary",
+  "tense",
+  "sad",
+  "romantic",
+  "action",
+  "party",
+  "calm",
+  "mystery",
+  "silent"
+ ],
+ "voices": {
+  "female": [
+   "af_heart",
+   "af_bella",
+   "bf_emma",
+   "af_nicole",
+   "af_sarah",
+   "bf_isabella",
+   "af_nova",
+   "af_river",
+   "af_jessica",
+   "bf_alice",
+   "af_kore",
+   "bf_lily"
+  ],
+  "male": [
+   "am_michael",
+   "bm_george",
+   "am_adam",
+   "bm_lewis",
+   "am_eric",
+   "am_onyx",
+   "am_liam",
+   "bm_daniel",
+   "am_puck",
+   "bm_fable",
+   "am_echo",
+   "am_fenrir"
+  ]
+ },
+ "animal_poses": [
+  "stand",
+  "walk",
+  "run",
+  "sit",
+  "lie",
+  "sleep",
+  "eat",
+  "jump",
+  "fly",
+  "talk"
+ ],
+ "point_effects": [
+  "anger",
+  "boom",
+  "bubbles",
+  "exclamation",
+  "explosion",
+  "fire",
+  "hearts",
+  "knock",
+  "magic",
+  "music",
+  "pow",
+  "question",
+  "shock",
+  "smoke",
+  "sparkle",
+  "stars",
+  "sweat",
+  "tears",
+  "zzz"
+ ]
+}

@@ -1,0 +1,11 @@
+node_modules
+.next
+.env*
+!.env.example
+engine/.cache
+engine/test/*.png
+engine/test/_*.html
+public/engine
+next-env.d.ts
+*.tsbuildinfo
+__pycache__
