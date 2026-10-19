@@ -15,7 +15,7 @@ function Copy({ text, label }: { text: string; label: string }) {
 
 export default function StoryView({ id }: { id: string }) {
   const [s, setS] = useState<S | null>(null); const [missing, setMissing] = useState(false);
-  const [editing, setEditing] = useState(false); const [planText, setPlanText] = useState(""); const [planErr, setPlanErr] = useState("");
+  const [editing, setEditing] = useState(false); const [ask, setAsk] = useState<"" | "replan" | "delete">(""); const [planText, setPlanText] = useState(""); const [planErr, setPlanErr] = useState("");
   const stepping = useRef(false);
   const load = useCallback(async () => {
     const r = await fetch(`/api/stories/${id}`, { cache: "no-store" });
@@ -95,9 +95,13 @@ export default function StoryView({ id }: { id: string }) {
 
       <div className="row">
         {(s.status === "done" || s.status === "failed") && s.plan ? <button className="btn quiet" onClick={() => act("/requeue")}>Make the video again</button> : null}
-        {s.status !== "planning" && <button className="btn quiet" onClick={() => { if (confirm("Plan the whole story again from scratch?")) act("/replan"); }}>Plan again from scratch</button>}
+        {s.status !== "planning" && (ask === "replan"
+          ? <><span>Plan the whole story again? Claude will redo every scene.</span><button className="btn" onClick={() => act("/replan")}>Yes, plan again</button><button className="btn quiet" onClick={() => setAsk("")}>Keep this plan</button></>
+          : <button className="btn quiet" onClick={() => setAsk("replan")}>Plan again from scratch</button>)}
         {s.plan ? <button className="btn quiet" onClick={() => { setPlanText(JSON.stringify(s.plan, null, 1)); setEditing(!editing); }}>{editing ? "Close the plan" : "Edit the plan"}</button> : null}
-        <button className="btn danger" onClick={() => { if (confirm("Delete this story and its video link?")) act("", "DELETE"); }}>Delete</button>
+        {ask === "delete"
+          ? <><span>Delete this story and its video link?</span><button className="btn danger" onClick={() => act("", "DELETE")}>Yes, delete it</button><button className="btn quiet" onClick={() => setAsk("")}>Keep it</button></>
+          : <button className="btn danger" onClick={() => setAsk("delete")}>Delete</button>}
       </div>
       {editing && (
         <div className="panel" style={{ display: "grid", gap: 10 }}>
