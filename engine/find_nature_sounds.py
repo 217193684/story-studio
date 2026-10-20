@@ -8,7 +8,7 @@ from pathlib import Path
 
 OUT = Path("sound_candidates")
 UA = {"User-Agent": "StoryStudio/1.0 (calm nature videos; https://story-studio-kappa-one.vercel.app) python-urllib"}
-PER_KIND = 8
+PER_KIND = 12
 SEARCH = {
     "wind": ["wind blowing field recording", "wind in grass", "breeze in trees", "wind ambience", "gentle wind"],
     "crickets": ["crickets night", "crickets chirping", "night insects ambience", "summer night ambience"],
@@ -45,22 +45,48 @@ def api(**p):
 def strip(html): return re.sub(r"<[^>]+>", "", html or "").strip()
 
 
+CATEGORY_WORDS = {
+    "wind": ["wind"], "crickets": ["crickets", "orthoptera", "insects"], "birds": ["birdsong", "bird songs", "dawn chorus", "bird"],
+    "evening": ["ambience", "soundscape", "field recording"], "forest": ["forest", "woodland", "soundscape"],
+    "stream": ["stream", "streams", "brook", "creek", "river"], "waterfall": ["waterfall", "waterfalls"], "lake": ["lake", "pond", "water"],
+    "waves": ["sea", "ocean", "waves", "surf"], "rain": ["rain"], "thunder": ["thunder", "thunderstorm"], "fire": ["fire", "campfire", "fireplace"],
+}
+NOT_NATURE = re.compile(r"\b(isrc|inaugural|address|remarks|president|read by|speech|étude|etude|symphony|op\.|hwv|bwv|episode|radio|interview|lecture|podcast|audiobook|librivox|wikipedia|spoken|news)\b", re.I)
+
+
+def pages(**p):
+    d = api(action="query", prop="imageinfo", iiprop="url|size|mime|extmetadata", **p)
+    return (d.get("query") or {}).get("pages", [])
+
+
+def audio_categories(kind):
+    cats = set()
+    for w in CATEGORY_WORDS[kind]:
+        for q in (f"audio files of {w}", f"sounds of {w}", f"{w} sounds", f"{w} recordings"):
+            d = api(action="query", list="search", srsearch=q, srnamespace=14, srlimit=20)
+            for r in (d.get("query") or {}).get("search", []):
+                t = r["title"]
+                if re.search(r"audio|sound|recording|soundscape|ambien", t, re.I) and re.search(w, t, re.I): cats.add(t)
+            time.sleep(.5)
+    return sorted(cats)
+
+
 def candidates(kind):
     seen, out = set(), []
-    for q in SEARCH[kind]:
-        d = api(action="query", generator="search", gsrsearch=f"{q} filetype:audio", gsrnamespace=6, gsrlimit=40,
-                prop="imageinfo", iiprop="url|size|mime|extmetadata")
-        for pg in (d.get("query") or {}).get("pages", []):
+    groups = [pages(generator="categorymembers", gcmtitle=c, gcmtype="file", gcmlimit=200) for c in audio_categories(kind)]
+    groups += [pages(generator="search", gsrsearch=f"{q} filetype:audio", gsrnamespace=6, gsrlimit=40) for q in SEARCH[kind]]
+    for grp in groups:
+        for pg in grp:
             t = pg["title"]
-            if t in seen or not pg.get("imageinfo"): continue
+            if t in seen or not pg.get("imageinfo") or NOT_NATURE.search(t): continue
+            if not re.search(r"\.(ogg|oga|opus|flac|wav|mp3|webm)$", t, re.I): continue
             seen.add(t); ii = pg["imageinfo"][0]; m = ii.get("extmetadata", {})
             lic = (m.get("LicenseShortName") or {}).get("value", "")
             if not OK_LICENCE.search(lic) or BAD_LICENCE.search(lic): continue
             if ii.get("size", 0) > 120e6: continue
             if re.search(r"\b(music|song(?!bird)|speech|voice|spoken|talk|pronunciation|siren|traffic|car|train|city)\b", t, re.I): continue
             out.append({"title": t, "url": ii["url"], "page": ii.get("descriptionurl"), "licence": lic,
-                        "author": strip((m.get("Artist") or {}).get("value", ""))[:120], "query": q})
-        time.sleep(1)
+                        "author": strip((m.get("Artist") or {}).get("value", ""))[:120]})
     return out
 
 
