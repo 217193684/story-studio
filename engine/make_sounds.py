@@ -84,6 +84,16 @@ SOUNDS = {
     "asmr_stir": ("Close-up ASMR: a wooden spoon slowly stirring soup in a pot, soft liquid sounds, no music", 3),
     "asmr_drop": ("Close-up ASMR: chopped vegetable slices sliding off a cutting board and dropping into a pot of soup, soft splash, no music", 1.5),
     "asmr_sprinkle": ("Close-up ASMR: shaking a salt shaker a few times over a pot, soft gentle sprinkle, no music", 1.5),
+    # nature beds for the Nature videos (long, calm, loopable)
+    "amb_rain_heavy": ("Heavy rain pouring steadily outdoors, dense and continuous, deep and soothing, no thunder, no music, no voices", 20),
+    "amb_waves": ("Calm ocean waves gently rolling onto a sandy beach and washing back, slow and steady, no music, no voices, no seagulls", 20),
+    "amb_stream": ("A small clear forest stream flowing and babbling over rocks, continuous and calm, no music, no voices", 20),
+    "amb_forest": ("Peaceful forest ambience: leaves rustling softly in a light breeze, a few distant gentle birds, calm, no music, no voices", 20),
+    "amb_fire": ("A cozy wood fireplace crackling and popping softly indoors, continuous, calm, no music, no voices", 20),
+    "amb_waterfall": ("A waterfall pouring into a rocky pool, steady rushing water, continuous, calm, no music, no voices", 20),
+    "amb_lake": ("Gentle water softly lapping at the edge of a calm lake, tiny ripples, very peaceful, a frog croaking far away now and then, no music, no voices", 20),
+    "amb_evening": ("Warm summer evening outdoors at sunset: soft breeze, a few distant evening birds, faint crickets starting, calm, no music, no voices", 20),
+    "amb_rain_leaves": ("Rain falling on leaves in a forest, soft pattering on foliage, dripping, continuous and calm, no thunder, no music, no voices", 20),
     "asmr_pencil": ("Close-up ASMR: a pencil writing slowly on paper in a notebook, soft scratchy strokes, quiet room, no music", 4),
     "asmr_page": ("Close-up ASMR: gently turning one paper page of a book, soft and crisp, quiet room, no music", 1.5),
 }
@@ -136,6 +146,15 @@ def generate(name):
     return len(data)
 
 
+def credits():
+    """Credits left on the ElevenLabs account (needs the key's "User: Read" permission; None if not allowed)."""
+    try:
+        r = urllib.request.urlopen(urllib.request.Request("https://api.elevenlabs.io/v1/user/subscription", headers={"xi-api-key": KEY}), timeout=30)
+        d = json.loads(r.read()); return int(d["character_limit"]) - int(d["character_count"])
+    except Exception as e:
+        print("couldn't read credits:", e); return None
+
+
 def main():
     OUT.mkdir(exist_ok=True)
     args = [a for a in sys.argv[1:] if a != "--redo"]; redo = "--redo" in sys.argv
@@ -144,6 +163,7 @@ def main():
     if not KEY:
         status["stopped_because"] = "ELEVENLABS_API_KEY is not set"
     else:
+        status["credits_before"] = credits()
         for name in want:
             if name not in SOUNDS and name not in MUSIC: print("unknown sound", name); continue
             if (OUT / f"{name}.mp3").exists() and not redo: status["already_had"].append(name); continue
@@ -156,6 +176,7 @@ def main():
                 print(status["stopped_because"]); break  # out of credits / no permission: keep what we made
             except Exception as e:
                 status["stopped_because"] = f"{name}: {e}"; print(status["stopped_because"]); break
+    if KEY: status["credits_after"] = credits()
     status["missing"] = [n for n in list(SOUNDS) + list(MUSIC) if not (OUT / f"{n}.mp3").exists()]
     (OUT / "_status.json").write_text(json.dumps(status, indent=1))
     print(json.dumps(status, indent=1))
