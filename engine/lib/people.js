@@ -76,6 +76,8 @@ const EXPRS = {
   disgusted: { by: -.1, bs: -.4, m: 'frown', e: 'open', lid: .3 },
   thinking: { by: .1, bs: .2, m: 'side', e: 'up' },
   evil: { by: -.2, bs: -1, m: 'evil', e: 'open', lid: .3 },
+  possessed: { by: -.25, bs: -1, m: 'evil', e: 'black' },
+  blank_stare: { by: 0, bs: 0, m: 'line', e: 'black' },
   embarrassed: { by: .1, bs: .5, m: 'wavy', e: 'open', blush: true },
   cool: { by: 0, bs: 0, m: 'smirk', e: 'shades' },
   worried: { by: .35, bs: .75, m: 'wavy', e: 'open' },
@@ -375,7 +377,7 @@ function drawHead(sp, D, c, skin, hc, O, ex, st, side, P) {
   // eyes
   const blink = ((t + hash(sp.name || sp.id || 'x') * 7) % 4.3) < .12;
   const eyeY = -r * .05, ew = r * .36, eyes = [-ew + lx, ew + lx];
-  const lidK = ex.lid || 0, mode = blink && ex.e !== 'hearts' && ex.e !== 'spiral' && ex.e !== 'shades' ? 'closed' : ex.e;
+  const lidK = ex.lid || 0, mode = blink && !['hearts', 'spiral', 'shades', 'black'].includes(ex.e) ? 'closed' : ex.e;
   const pl = (st.lookX ?? look) * r * .08;
   eyes.forEach((exx, i) => {
     const far = side && i === 0 ? .82 : 1;
@@ -387,6 +389,11 @@ function drawHead(sp, D, c, skin, hc, O, ex, st, side, P) {
     if (mode === 'hearts') { const hx = exx, hy = eyeY, s = r * .13; g.beginPath(); g.moveTo(hx, hy + s); g.bezierCurveTo(hx - s * 2, hy - s * .4, hx - s * .6, hy - s * 1.7, hx, hy - s * .5); g.bezierCurveTo(hx + s * .6, hy - s * 1.7, hx + s * 2, hy - s * .4, hx, hy + s); g.fillStyle = '#e11d48'; g.fill(); return; }
     if (mode === 'spiral') { g.strokeStyle = '#1f1410'; g.lineWidth = 2; g.beginPath(); for (let a = 0; a < 12; a += .3) { const rr_ = a * r * .015; g.lineTo(exx + Math.cos(a + t * 6) * rr_, eyeY + Math.sin(a + t * 6) * rr_); } g.stroke(); return; }
     if (mode === 'shades') { return; }
+    if (mode === 'black') { // possessed: the whole eye goes black, with a faint red glint
+      ellipse(exx, eyeY, r * .19 * far, r * .23, '#050505');
+      circle(exx + pl * .5 - r * .05, eyeY - r * .07, r * .035, 'rgba(220,30,30,.85)');
+      return;
+    }
     const wide = mode === 'wide' ? 1.3 : 1;
     let rx = r * .17, ry = r * .21, pr = r * .1;
     if (eyeKind === 'almond') { rx = r * .2; ry = r * .12; pr = r * .085; }

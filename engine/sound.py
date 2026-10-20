@@ -38,6 +38,8 @@ def snare(d=.2):
     t = _t(d); return (_noise(len(t)) * .7 + np.sin(2 * np.pi * 190 * t) * .4) * np.exp(-t * 22)
 def hat(d=.06):
     t = _t(d); n = _noise(len(t)); return (n - np.convolve(n, np.ones(4) / 4, "same")) * np.exp(-t * 70)
+def tick(d=.07):
+    t = _t(d); return (np.sin(2 * np.pi * 880 * t) + .4 * np.sin(2 * np.pi * 1320 * t)) * np.exp(-t * 90)
 def whistle(f, d):
     t = _t(d); return np.sin(2 * np.pi * f * t + 3 * np.sin(2 * np.pi * 5.5 * t) * (t > .15)) * _env(len(t), .06, .15)
 
@@ -75,8 +77,9 @@ def music_loop(mood, seed=0):
     if R.get('drone'):
         d = 16.; t = _t(d); k = R['key']
         s = (np.sin(2 * np.pi * midi(k) * t) + .8 * np.sin(2 * np.pi * midi(k) * 1.06 * t) + .5 * np.sin(2 * np.pi * midi(k + 7) * t)) * (.6 + .4 * np.sin(2 * np.pi * .11 * t))
-        s += _noise(len(t), 60) * .25 * (.5 + .5 * np.sin(2 * np.pi * .05 * t))
-        for at in (3.1, 9.7): place(s, (np.sin(2 * np.pi * 1174 * _t(2.5)) + np.sin(2 * np.pi * 1245 * _t(2.5))) * np.sin(np.pi * _t(2.5) / 2.5) ** 2 * .12, at)
+        # deep rumble only (the old brighter noise bed sounded like paper rustling for the whole horror story)
+        s += _noise(len(t), 800) * 1.2 * (.5 + .5 * np.sin(2 * np.pi * .05 * t))
+        for at in (3.1, 9.7): place(s, (np.sin(2 * np.pi * 587 * _t(2.5)) + np.sin(2 * np.pi * 622 * _t(2.5))) * np.sin(np.pi * _t(2.5) / 2.5) ** 2 * .06, at)
         for at in np.arange(0, d, 1.2) if rng.rand() > .5 else []: place(s, kick(.4) * .35, at)
         return s * .5
     beat = 60 / R['bpm']; bar = beat * 4; bars = len(R['prog']) * 2; d = bars * bar
@@ -107,7 +110,8 @@ def music_loop(mood, seed=0):
             if dr in ('rock', 'club') or (dr == 'light' and i % 2 == 0): place(s, kick() * (.5 if dr != 'light' else .3), t0 + i * beat)
             if dr == 'rock' and i % 2 == 1: place(s, snare() * .4, t0 + i * beat)
             if dr == 'club': place(s, hat() * .3, t0 + i * beat + beat / 2)
-            if dr in ('light', 'tick', 'rock'): place(s, hat() * (.16 if dr != 'tick' else .1), t0 + i * beat + (beat / 2 if dr != 'tick' else 0))
+            if dr in ('light', 'rock'): place(s, hat() * .12, t0 + i * beat + beat / 2)
+            if dr == 'tick': place(s, tick() * (.16 if i == 0 else .1), t0 + i * beat)  # tonal clock tick, not noise
     if R.get('whistle'):
         mel = [(0, 12), (1.5, 15), (2, 19), (4, 17), (5, 15), (6, 14), (8, 12)]
         for at, n in mel: place(s, whistle(midi(R['key'] + n), beat * 1.3) * .12, at * beat + bar * 2)
@@ -145,7 +149,9 @@ def sfx(name):
     if n == 'door_slam': o = np.zeros(int(.6 * SR)); place(o, sfx('knock') * 1.6, 0); place(o, _noise(int(.5 * SR), 8) * np.exp(-_t(.5) * 14) * .6, 0); return o
     if n == 'footsteps':
         out = np.zeros(int(1.6 * SR))
-        for i in range(4): place(out, (_noise(int(.12 * SR), 30) * np.exp(-_t(.12) * 40) + np.sin(2 * np.pi * 70 * _t(.12)) * np.exp(-_t(.12) * 30)) * .6, i * .4)
+        for i in range(4):  # soft low thuds — no hiss (hiss read as "paper rubbing")
+            tt = _t(.14); f = 95 * np.exp(-tt * 18) + 55
+            place(out, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * 28) * (.5 if i % 2 else .42), i * .4)
         return out
     if n == 'sting':
         t = _t(1.3); sw = np.sin(np.pi * np.minimum(1, t / 1.3)) ** 2
@@ -255,12 +261,14 @@ SFX_NAMES = ['knock', 'door_open', 'creak', 'door_slam', 'footsteps', 'sting', '
 def ambience(where, tod, weather, dur):
     n = int(dur * SR); t = np.arange(n) / SR; a = np.zeros(n)
     outdoor = where in ('street', 'township', 'taxi_rank', 'city', 'construction', 'farm', 'bush', 'forest', 'beach', 'graveyard', 'western_town', 'desert', 'park', 'haunted_house', 'road')
-    if weather == 'rain': a += _noise(n, 2) * .05 + _noise(n, 30) * .1
-    if weather in ('wind', 'dust') or where in ('desert', 'western_town'): a += _noise(n, 300) * 1.2 * (.5 + .5 * np.sin(2 * np.pi * .2 * t))
-    if where == 'beach': a += _noise(n, 80) * 1.0 * (.4 + .6 * np.sin(2 * np.pi * .12 * t) ** 2)
-    if where in ('bar', 'restaurant', 'taxi_rank', 'shop', 'city', 'club'): a += _noise(n, 40) * .25
-    if outdoor and tod == 'night':
-        for i in range(int(dur * 3)): at = i / 3 + _rng.rand() * .2; ch = np.sin(2 * np.pi * 4200 * _t(.05)) * (np.sin(2 * np.pi * 60 * _t(.05)) > 0) * .02; place(a, ch, at)
+    # Only soft, low beds — bright hiss reads as paper rustling under the voice.
+    if weather == 'rain': a += _noise(n, 120) * .5
+    if weather in ('wind', 'dust') or where in ('desert', 'western_town'): a += _noise(n, 400) * .7 * (.5 + .5 * np.sin(2 * np.pi * .2 * t))
+    if where == 'beach': a += _noise(n, 200) * .8 * (.4 + .6 * np.sin(2 * np.pi * .12 * t) ** 2)
+    if outdoor and tod == 'night':  # a few quiet crickets, not a constant buzz
+        for i in range(int(dur / 1.7)):
+            at = i * 1.7 + _rng.rand() * .6; tt = _t(.09)
+            place(a, np.sin(2 * np.pi * 3600 * tt) * (np.sin(2 * np.pi * 45 * tt) > 0) * np.sin(np.pi * tt / .09) * .006, at)
     elif outdoor and where in ('farm', 'bush', 'forest', 'park'):
         for i in range(int(dur / 2.5)):
             at = i * 2.5 + _rng.rand(); tt = _t(.18); f = 2600 + 900 * np.sin(2 * np.pi * 12 * tt); place(a, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * tt / .18) * .025, at)

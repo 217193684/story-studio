@@ -54,7 +54,7 @@ Read the story and plan the video. Return ONLY JSON, no other text:
 Rules:
 - Cover the WHOLE story, in order. Together the scenes' "text" must contain all of the story. A scene is usually 30-90 seconds of story (about 60-200 words).
 - Characters: describe each one with the people parts so they look like the story says (age, gender, skin, hair, clothes). Make every character look different. If the story doesn't say, choose a natural mix of people. Give every speaking character a different voice that fits them.
-- Places: pick the closest library place. Choose mood for the music and feeling of each scene. Use the story's genre for "style".
+- Places: pick the closest library place (an abandoned mansion or creepy old house = "haunted_house"; someone's home outside = "yard"). Choose mood for the music and feeling of each scene. Use the story's genre for "style".
 - Never use names that are not in the library. If the story needs something that isn't there, use the closest thing.`;
 
 const SCENE_RULES = `You are the director of Story Studio. Turn ONE scene of a story into a beat-by-beat plan for a simple 2D cartoon. Return ONLY JSON:
@@ -75,6 +75,8 @@ How to direct:
 - Height: "y" lifts a character off the ground, as a fraction of the screen height. On a roof y≈0.35-0.45 (stand them over the house), on a table y≈0.15, in a tree y≈0.3. You can set "y" in "actors", in "do", and in "move" (to climb or jump down).
 - Make it ALIVE: characters react while others talk (faces, poses), walk to each other, enter and exit, use props. Add sound effects where the story implies them (knock, door_open, phone_ring, footsteps, thunder, laugh_track for comedy, sting for scares). Use effects for big moments (exclamation, question, hearts, shock, pow, sweat). Use camera zoom for dramatic lines, then camera wide.
 - Animals always need "kind" (e.g. "chicken") in the cast, and a "color" (hex) when the story describes them ("a fat brown chicken" = "color": "#8b4513"). Extra animals too: {"id": "chicken2", "name": "Chicken", "kind": "chicken"}.
+- Horror faces: when a character is possessed, a demon, or the text says their eyes turn black, use face "possessed" (fully black eyes) and keep giving them "possessed" on every later beat until the story says otherwise. Use "evil" for a sinister grin with normal eyes. The scariest line of a scene deserves a camera zoom on that face.
+- An abandoned / creepy mansion or old house is the place "haunted_house", never "street".
 - "door" is only for a door standing in a wall indoors; outside use "shed", "chicken_coop", "rondavel" or the place's own house.
 - Big things: vehicles (car, bakkie, taxi, truck) go near an edge (x below 0.15 or above 0.85) or behind the characters with "depth": 0.6, and use "scale": 0.7. Prefer "bakkie" for a pickup. Never park a vehicle in front of the action.
 - Places: for someone's home outside (yard, garden, behind the house) use "yard" (options {"rural": true} for a village or farm home like in KZN, {"rural": false} for a township home). Use "farm" only for a real farm.

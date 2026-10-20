@@ -83,7 +83,8 @@ ALIASES = {
     "face": {"smiling": "happy", "smile": "happy", "joy": "happy", "glad": "happy", "laughing": "laugh", "crying": "cry", "upset": "sad", "unhappy": "sad", "mad": "angry",
              "furious": "angry", "annoyed": "angry", "terrified": "scared", "afraid": "scared", "fear": "scared", "frightened": "scared", "surprise": "surprised",
              "amazed": "shocked", "calm": "neutral", "tired": "sleepy", "asleep": "sleeping", "in_love": "love", "loving": "love", "curious": "thinking",
-             "puzzled": "confused", "sly": "smug", "cheeky": "smug", "anxious": "nervous", "embarrassed": "embarrassed", "disgust": "disgusted", "grumpy": "angry"},
+             "puzzled": "confused", "sly": "smug", "cheeky": "smug", "anxious": "nervous", "embarrassed": "embarrassed", "disgust": "disgusted", "grumpy": "angry",
+             "demonic": "possessed", "demon": "possessed", "black_eyes": "possessed", "possession": "possessed", "menacing": "evil", "sinister": "evil", "creepy": "evil"},
     "pose": {"standing": "stand", "walking": "walk", "running": "run", "sitting": "sit", "seated": "sit", "lying": "lie", "lying_down": "lie", "sleeping": "sleep",
              "pointing": "point", "waving": "wave", "crying": "cry", "laughing": "laugh", "dancing": "dance", "jumping": "jump", "thinking": "think",
              "hands_on_hips": "angry", "arms_crossed": "angry", "celebrate": "cheer", "celebrating": "cheer", "shocked": "armsup", "surprised": "armsup",
@@ -371,7 +372,7 @@ def compile_plan(plan, out_dir, log=print):
                 sc["actors"][who]["events"].append(e); cur[who].update({"x": x1, "pose": e["after"], "facing": "right" if x1 > x0 else "left"})
                 if "exit" in b: cur[who]["visible"] = False
                 if cast[who]["kind"] == "human" and p != "sneak":
-                    for k in range(int(d / .5)): sfx_events.append((bs + k * .5, "footsteps", .12 if p == "walk" else .2))
+                    for k in range(int(d / 1.6) + 1): sfx_events.append((bs + k * 1.6, "footsteps", .1 if p == "walk" else .16))
                 if cast[who]["kind"] == "horse": sfx_events.append((bs, "horse", .5))
                 dur = d if not b.get("no_wait") else .3
             elif "sfx" in b:
@@ -432,7 +433,7 @@ def compile_plan(plan, out_dir, log=print):
     for at, name, vol in sfx_events: sound.place(fx, sound.sfx(name) * vol, at)
     amb = np.zeros(n)
     for sc in scenes: sound.place(amb, sound.ambience(sc["place"], sc["tod"], sc["weather"], sc["end"] - sc["start"]) * .6, sc["start"])
-    mix = voice + music + fx * .55 + amb * .5
+    mix = voice + music + fx * .5 + amb * .3
     mix = np.tanh(mix * 1.5) * .97
     sf.write(out_dir / "mix.wav", mix.astype(np.float32), SR)
     (out_dir / "D.json").write_text(json.dumps(D))
