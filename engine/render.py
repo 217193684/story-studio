@@ -1,5 +1,5 @@
 """Story Studio — renders D.json + mix.wav into an MP4, using several browser pages in parallel."""
-import json, os, subprocess, sys, time
+import json, os, subprocess, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -10,6 +10,9 @@ LIBS = ["core.js", "people.js", "animals.js", "props.js", "places.js", "effects.
 def page_html(w, h):
     src = "".join(f"<script charset='utf-8' src='{(HERE / 'lib' / l).as_uri()}'></script>" for l in LIBS)
     return f"<!doctype html><html><head><meta charset='utf-8'></head><body style='margin:0;background:#000'><canvas id=c width={w} height={h}></canvas><script>window.g=null;</script>{src}<script>g=document.getElementById('c').getContext('2d');</script></body></html>"
+
+
+_done = [0]; _lock = threading.Lock()  # frames drawn so far, across all workers (for the progress bar)
 
 
 def render_chunk(args):
@@ -27,12 +30,14 @@ def render_chunk(args):
             pg.evaluate(f"render({f / fps})")
             ff.stdin.write(pg.screenshot(type="jpeg", quality=88))
             if errs: raise RuntimeError(errs[0])
+            with _lock: _done[0] += 1
         b.close()
     ff.stdin.close(); ff.wait()
     return i
 
 
-def render(work, out_mp4, w=1280, h=720, workers=None, log=print):
+def render(work, out_mp4, w=1280, h=720, workers=None, log=print, progress=None):
+    """progress(fraction 0..1) is called every few seconds while frames are drawn."""
     work = Path(work); D = json.loads((work / "D.json").read_text()); fps = D["fps"]
     frames = int(D["total"] * fps); workers = workers or max(1, min(6, os.cpu_count() or 2))
     per = -(-frames // workers); jobs = []
@@ -40,7 +45,16 @@ def render(work, out_mp4, w=1280, h=720, workers=None, log=print):
         f0, f1 = i * per, min(frames, (i + 1) * per)
         if f0 < f1: jobs.append((i, f0, f1, D, work / f"chunk{i}.mp4", w, h, fps))
     t0 = time.time(); log(f"rendering {frames} frames with {len(jobs)} workers")
-    with ThreadPoolExecutor(len(jobs)) as ex: list(ex.map(render_chunk, jobs))
+    _done[0] = 0; stop = threading.Event()
+    def watch():
+        while not stop.wait(5):
+            if progress:
+                try: progress(min(1, _done[0] / max(1, frames)))
+                except Exception: pass
+    th = threading.Thread(target=watch, daemon=True); th.start()
+    try:
+        with ThreadPoolExecutor(len(jobs)) as ex: list(ex.map(render_chunk, jobs))
+    finally: stop.set()
     (work / "chunks.txt").write_text("".join(f"file '{j[4].name}'\n" for j in jobs))
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(work / "chunks.txt"), "-i", str(work / "mix.wav"),
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out_mp4)], check=True)

@@ -259,8 +259,15 @@ def voice_params(c):
     return (1.0, 1.05)
 
 
-def compile_plan(plan, out_dir, log=print):
+def compile_plan(plan, out_dir, log=print, progress=None):
+    """progress(fraction 0..1) is called as each spoken line's voice is made (the slow part of compiling)."""
     out_dir = Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+    n_lines = max(1, sum(1 for S in plan.get("scenes", []) for b in S.get("beats", []) if "say" in b)); said = [0]
+    def line_done():
+        said[0] += 1
+        if progress:
+            try: progress(min(1, said[0] / n_lines))
+            except Exception: pass
     rep = Report()
     style = nearest(plan.get("style", "drama"), list(NARRATOR), "style", rep, "drama")
     cast_list = [norm_cast(c, rep, i) for i, c in enumerate(plan.get("cast", []))]
@@ -336,6 +343,7 @@ def compile_plan(plan, out_dir, log=print):
                 if not text or SPEECH_TAG.match(text): continue
                 if who is None or str(who).lower() in ("narrator", "narration", "voiceover"):
                     a = tts(text, nv, .96 if style != "horror" else .9)
+                    line_done()
                     voice_clips.append((bs + .05, a, 1.0))
                     captions.append({"t0": round(bs + .05, 3), "t1": round(bs + .05 + len(a) / SR, 3), "narrator": True, "words": word_times(text, bs + .05, bs + .05 + len(a) / SR)})
                     if auto_cam: sc["camera"].append({"t": round(bs, 3), "zoom": 1.0, "cx": .5, "cy": .55, "dur": 1.2})
@@ -346,6 +354,7 @@ def compile_plan(plan, out_dir, log=print):
                     if not off and not cur[who].get("visible", True): ev(who, bs, visible=True)
                     c = cast[who]; sp, pitch = voice_params(c)
                     a = tts(text, voices[who], sp * float(b.get("speed", 1)), pitch)
+                    line_done()
                     voice_clips.append((bs + .05, a, 1.0))
                     if not off: talk.setdefault(who, []).append([round(bs + .05, 3), FPS, mouth_env(a)])
                     captions.append({"t0": round(bs + .05, 3), "t1": round(bs + .05 + len(a) / SR, 3), "name": c["name"], "color": c["color_tag"], "words": word_times(text, bs + .05, bs + .05 + len(a) / SR)})

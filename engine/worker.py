@@ -44,17 +44,40 @@ def advance_planning():
         log("planning:", r.get("id"), (r.get("progress") or {}).get("note"))
 
 
+class Progress:
+    """Sends the website an overall percentage for the loading bar: voices 30-60%, drawing 60-95%, upload 96%."""
+    def __init__(self, sid): self.sid, self.last, self.stage_t0 = sid, 0.0, time.time()
+
+    def send(self, pct, note, force=False):
+        if not force and time.time() - self.last < 6: return  # don't flood the website
+        self.last = time.time()
+        try: call(f"/api/jobs/{self.sid}/progress", {"note": note, "pct": round(pct, 1)}, timeout=30)
+        except Exception as e: log("progress update failed:", e)
+
+    def stage(self, lo, hi, label):
+        self.stage_t0 = time.time()
+        def cb(f):
+            el = time.time() - self.stage_t0
+            left = f" — about {max(1, round(el * (1 - f) / f / 60))} min left" if f > .05 and el > 20 else ""
+            self.send(lo + (hi - lo) * f, f"{label} ({int(f * 100)}%){left}")
+        return cb
+
+
 def make(job):
     from compile import compile_plan
     from render import render
     sid, plan = job["id"], job["plan"]
     work = Path(f"/tmp/story-{sid}"); work.mkdir(parents=True, exist_ok=True)
     log(f"== {job.get('title')} ({sid})")
-    D = compile_plan(plan, work, log=log)
-    call(f"/api/jobs/{sid}/progress", {"note": f"Drawing {int(D['total'] // 60)}:{int(D['total'] % 60):02d} of video"})
+    pr = Progress(sid)
+    pr.send(30, "Recording the voices", force=True)
+    D = compile_plan(plan, work, log=log, progress=pr.stage(30, 60, "Recording the voices"))
+    mins = f"{int(D['total'] // 60)}:{int(D['total'] % 60):02d}"
+    pr.send(60, f"Drawing {mins} of video", force=True)
     slug = re.sub(r"[^a-z0-9]+", "-", (job.get("title") or "story").lower()).strip("-")[:50] or "story"
     out = work / f"{slug}.mp4"
-    render(work, out, log=log)
+    render(work, out, log=log, progress=pr.stage(60, 95, f"Drawing {mins} of video"))
+    pr.send(96, "Uploading the finished video", force=True)
     tag = f"story-{sid[:8]}-{os.environ.get('GITHUB_RUN_ID', int(time.time()))}"
     subprocess.run(["gh", "release", "create", tag, str(out), "--repo", REPO, "--title", job.get("title") or "Story", "--notes", f"Story Studio video for story {sid}"], check=True)
     url = f"https://github.com/{REPO}/releases/download/{tag}/{out.name}"

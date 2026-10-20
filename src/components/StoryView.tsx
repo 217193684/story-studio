@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type S = {
-  id: string; title: string; story: string; style: string; status: string; progress: { step?: number; total?: number; note?: string };
+  id: string; title: string; story: string; style: string; status: string; progress: { step?: number; total?: number; note?: string; pct?: number };
   outline: { scenes: { place: string; time: string; summary?: string; body?: unknown }[] } | null; plan: unknown; report: string[] | null;
   youtube: { title: string; description: string; tags: string[] } | null; video_url: string | null; duration_sec: number | null; error: string | null;
 };
@@ -42,6 +42,10 @@ export default function StoryView({ id }: { id: string }) {
   const scenes = s.outline?.scenes || [];
   const nowIdx = s.status === "planning" ? scenes.findIndex((sc) => !sc.body) : -1;
   const pct = s.progress?.total ? Math.round(((s.progress.step || 0) / s.progress.total) * 100) : 0;
+  // one bar for the whole journey: planning 0-25%, waiting 25%, voices 30-60%, drawing 60-95%, upload 96%, done 100%
+  const overall = s.status === "planning" ? pct * .25 : s.status === "queued" ? 25 : s.status === "rendering" ? (s.progress?.pct ?? 30) : s.status === "done" ? 100 : 0;
+  const stages = [["Planning", 0], ["Waiting", 25], ["Voices", 30], ["Drawing", 60], ["Uploading", 95]] as const;
+  const stageNow = stages.reduce((cur, st, i) => (overall >= st[1] ? i : cur), 0);
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -49,8 +53,18 @@ export default function StoryView({ id }: { id: string }) {
       <div className="panel" style={{ display: "grid", gap: 14 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h2>{STATUS[s.status] || s.status}</h2>
-          {s.status === "planning" && <span className="muted">{pct}%</span>}
+          {s.status !== "failed" && <span className="muted" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(overall)}%</span>}
         </div>
+        {s.status !== "failed" && (
+          <div>
+            <div className={`bar ${s.status === "queued" ? "wait" : ""} ${s.status === "done" ? "full" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(overall)}>
+              <i style={{ width: `${Math.max(2, overall)}%` }} />
+            </div>
+            <div className="stages">
+              {stages.map(([label], i) => <span key={label} className={i < stageNow || s.status === "done" ? "past" : i === stageNow ? "cur" : ""}>{label}</span>)}
+            </div>
+          </div>
+        )}
         {s.progress?.note && s.status !== "done" && <p className="muted" style={{ margin: 0 }}>{s.progress.note}</p>}
         {s.status === "failed" && <p style={{ margin: 0, color: "var(--rose)" }}>{s.error}</p>}
         {scenes.length > 0 && (
@@ -62,7 +76,7 @@ export default function StoryView({ id }: { id: string }) {
             ))}
           </div>
         )}
-        {s.status === "queued" && <p className="muted small" style={{ margin: 0 }}>The video maker checks for new stories every 5 minutes. You can close this page; the video will be here when it&apos;s ready.</p>}
+        {s.status === "queued" && <p className="muted small" style={{ margin: 0 }}>The video maker usually starts within a few minutes, but GitHub can sometimes take longer to start it. You can close this page; the bar keeps going and the video will be here when it&apos;s ready.</p>}
       </div>
 
       {s.status === "done" && s.video_url && (
