@@ -5,7 +5,7 @@
 Makes public/preview/nature/<place>-<sound>.mp3 (the nature sound exactly as the video maker mixes it, incl. stand-ins
 and thunder) and public/preview/music/<music>.mp3. The page plays the two together. Run again after new sounds are made.
 """
-import json, subprocess, sys
+import json, subprocess, sys, tempfile
 from pathlib import Path
 import numpy as np, soundfile as sf
 
@@ -20,8 +20,9 @@ OUT = ROOT / "public" / "preview"
 
 
 def envs():
-    js = "import('" + str(ROOT / "src/lib/nature.ts") + "').then(m => console.log(JSON.stringify(m.ENVIRONMENTS)))"
-    r = subprocess.run(["npx", "-y", "tsx", "-e", js], check=True, capture_output=True, text=True, cwd=ROOT)
+    with tempfile.NamedTemporaryFile("w", suffix=".ts", delete=False) as f:
+        f.write(f'import {{ ENVIRONMENTS }} from "{ROOT / "src/lib/nature.ts"}";\nconsole.log(JSON.stringify(ENVIRONMENTS));\n')
+    r = subprocess.run(["npx", "-y", "tsx", f.name], check=True, capture_output=True, text=True, cwd=ROOT)
     return json.loads(r.stdout)
 
 

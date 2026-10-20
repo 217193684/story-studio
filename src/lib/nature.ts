@@ -29,7 +29,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
     label: "Sunset", emoji: "🌅", search: "sunset landscape",
     sounds: {
       breeze: { label: "Gentle breeze", beds: [["amb_wind", 1], ["amb_evening", .3]] },
-      birds: { label: "Evening birds", beds: [["amb_evening", 1], ["amb_wind", .35]] },
+      birds: { label: "Evening birds", beds: [["amb_evening", .7], ["amb_wind", .6], ["amb_night", .25]] },
       waves: { label: "Waves at sunset", beds: [["amb_waves", 1], ["amb_wind", .25]] },
     },
   },

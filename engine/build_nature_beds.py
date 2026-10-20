@@ -10,7 +10,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 UA = {"User-Agent": "StoryStudio/1.0 (calm nature videos; https://story-studio-kappa-one.vercel.app) python-urllib"}
-LOW_CUT = {"amb_lake": 160, "amb_fire": 150, "thunder": 30, "amb_waves": 45, "amb_rain_heavy": 60, "amb_waterfall": 60}       # keep their deep body
+LOW_CUT = {"amb_lake": 220, "amb_fire": 150, "thunder": 30, "amb_waves": 45, "amb_rain_heavy": 180, "amb_waterfall": 60}       # keep their deep body
 HIGH_CUT = {"thunder": 2500, "amb_fire": 9000, "amb_rain_heavy": 10000}
 EVEN_OUT = {"amb_birds", "amb_evening", "amb_fire", "amb_lake", "amb_forest", "amb_rain_leaves"}  # sudden loud bits softened
 
@@ -22,6 +22,7 @@ def main():
         with urllib.request.urlopen(urllib.request.Request(s["url"], headers=UA), timeout=300) as r: tmp.write_bytes(r.read())
         f = [f"highpass=f={LOW_CUT.get(name, 100)}:poles=2", f"lowpass=f={HIGH_CUT.get(name, 12000)}:poles=1"]
         if name in EVEN_OUT: f.append("acompressor=threshold=-26dB:ratio=3:attack=8:release=250:makeup=2")
+        if name in ("amb_evening", "amb_rain_heavy"): f.append("acompressor=threshold=-30dB:ratio=4:attack=20:release=400:makeup=3")
         if name == "thunder": f.append("afade=t=in:d=0.4,afade=t=out:st={:.1f}:d=4".format(s["seconds"] - 4))
         f.append("loudnorm=I=-24:TP=-3:LRA=11")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(s["start"]), "-t", str(s["seconds"]), "-i", str(tmp),
