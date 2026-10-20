@@ -19,6 +19,7 @@ SCENES = {  # scene -> picture options + the real recordings (from make_sounds.p
     "quiet_rain": {"opts": {"rain": "steady", "thunder": False}, "bed": "amb_rain", "thunder": False},
     "storm_window": {"opts": {"rain": "heavy", "thunder": True}, "bed": "amb_rain", "thunder": True},
 }
+KAWAII = {"cat_meal": {"lib": "kawaii.js", "fn": "renderKawaii", "loop": 40.0}}  # flat cute ASMR scenes with timed sounds
 FRAME = SR // FPS  # 1470 samples per frame, so sound and picture loops have exactly the same length
 
 
@@ -56,19 +57,37 @@ def sound_loop(scene, music):
     return (out / pk * .8).astype(np.float32), loop_s, thunder_at
 
 
-def page_html():
-    lib = (HERE / "lib" / "cozy.js").read_text()
+def kawaii_sound_loop(scene, loop_s):
+    """Rain on the window and soft calm music underneath, with the scene's ASMR sounds at their exact moments."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        b = p.chromium.launch(); pg = b.new_page(); pg.set_content(page_html(KAWAII[scene]["lib"]))
+        events = pg.evaluate("kawaiiSounds()")["events"]; b.close()
+    n = int(round(loop_s * FPS)) * FRAME; xf = int(XF * SR); m = n + xf  # make a little extra, then fold it over the start
+    out = np.zeros(m)
+    rain = seamless(load("amb_rain")); out += np.tile(rain, m // len(rain) + 1)[:m] / (np.sqrt((rain ** 2).mean()) + 1e-9) * .03
+    if (SOUNDS / "music_calm.mp3").exists():
+        mu = seamless(load("music_calm")); out += np.tile(mu, m // len(mu) + 1)[:m] / (np.sqrt((mu ** 2).mean()) + 1e-9) * .05
+    for at, name in events:
+        if not (SOUNDS / f"{name}.mp3").exists(): print("sound not made yet:", name); continue
+        x = load(name); x = x / (np.abs(x).max() or 1) * .35; i = int(at * SR); out[i:i + len(x)] += x[: m - i]
+    k = np.linspace(0, 1, xf); out[:xf] = out[:xf] * np.sqrt(k) + out[n:n + xf] * np.sqrt(1 - k)  # seamless loop point
+    out = out[:n]; return (out / (np.abs(out).max() or 1) * .85).astype(np.float32)
+
+
+def page_html(lib_name="cozy.js"):
+    lib = (HERE / "lib" / lib_name).read_text()
     return f"<html><meta charset='utf-8'><body style='margin:0;background:#000'><canvas id=c width={W} height={H}></canvas><script>{lib}</script></body></html>"
 
 
-def render_chunk(i0, i1, opts, path):
+def render_chunk(i0, i1, opts, path, lib="cozy.js", fn="renderCozy"):
     from playwright.sync_api import sync_playwright
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "image2pipe", "-framerate", str(FPS), "-i", "-",
                            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-g", str(FPS * 4), str(path)], stdin=subprocess.PIPE)
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page(viewport={"width": W, "height": H}); pg.set_content(page_html())
+        b = p.chromium.launch(); pg = b.new_page(viewport={"width": W, "height": H}); pg.set_content(page_html(lib))
         for i in range(i0, i1):
-            url = pg.evaluate(f"(() => {{ const c = document.getElementById('c'); renderCozy(c.getContext('2d'), {i / FPS}, {json.dumps(opts)}); return c.toDataURL('image/jpeg', .92); }})()")
+            url = pg.evaluate(f"(() => {{ const c = document.getElementById('c'); {fn}(c.getContext('2d'), {i / FPS}, {json.dumps(opts)}); return c.toDataURL('image/jpeg', .92); }})()")
             ff.stdin.write(base64.b64decode(url.split(",", 1)[1]))
         b.close()
     ff.stdin.close(); ff.wait()
@@ -76,17 +95,21 @@ def render_chunk(i0, i1, opts, path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--scene", default="rain_window", choices=list(SCENES)); ap.add_argument("--minutes", type=float, default=1)
+    ap.add_argument("--scene", default="rain_window", choices=list(SCENES) + list(KAWAII)); ap.add_argument("--minutes", type=float, default=1)
     ap.add_argument("--out", default="cozy.mp4"); ap.add_argument("--silent", action="store_true", help="picture only (sounds not made yet)")
     ap.add_argument("--workers", type=int, default=4); ap.add_argument("--music", action="store_true", help="add soft calm music under the rain")
     a = ap.parse_args()
-    audio, loop_s, thunder_at = sound_loop(a.scene, a.music)  # the picture loop is made exactly as long as the sound loop
-    opts = {"loop": loop_s, "thunderAt": thunder_at, **SCENES[a.scene]["opts"]}
+    if a.scene in KAWAII:
+        K = KAWAII[a.scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {}
+        audio = None if a.silent else kawaii_sound_loop(a.scene, loop_s)
+    else:
+        audio, loop_s, thunder_at = sound_loop(a.scene, a.music)  # the picture loop is made exactly as long as the sound loop
+        opts = {"loop": loop_s, "thunderAt": thunder_at, **SCENES[a.scene]["opts"]}; lib, fn = "cozy.js", "renderCozy"
     work = Path(tempfile.mkdtemp(prefix="cozy-"))
     frames = round(loop_s * FPS); step = -(-frames // a.workers)
     parts = [(i, min(frames, i + step), work / f"part{k}.mp4") for k, i in enumerate(range(0, frames, step))]
     print(f"drawing a {loop_s:.2f}s loop ({frames} frames) with {len(parts)} workers")
-    with cf.ThreadPoolExecutor(len(parts)) as ex: list(ex.map(lambda p: render_chunk(p[0], p[1], opts, p[2]), parts))
+    with cf.ThreadPoolExecutor(len(parts)) as ex: list(ex.map(lambda p: render_chunk(p[0], p[1], opts, p[2], lib, fn), parts))
     (work / "parts.txt").write_text("".join(f"file '{p[2]}'\n" for p in parts))
     loop_mp4 = work / "loop.mp4"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "parts.txt"), "-c", "copy", str(loop_mp4)], check=True)
