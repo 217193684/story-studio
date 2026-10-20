@@ -115,5 +115,50 @@
   "author": "Glaneur de sons",
   "start": 3.0,
   "seconds": 44
+ },
+ "amb_city": {
+  "title": "184809 qubodup first-day-of-urban-spring-in-berlin-2013-04-14.flac",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/184809_qubodup_first-day-of-urban-spring-in-berlin-2013-04-14.flac?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "page": "https://commons.wikimedia.org/wiki/File:184809_qubodup_first-day-of-urban-spring-in-berlin-2013-04-14.flac",
+  "licence": "CC0",
+  "author": "ubodup",
+  "start": 2,
+  "seconds": 105
+ },
+ "amb_highway": {
+  "title": "Bundesautobahn A6.flac",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/89/Bundesautobahn_A6.flac?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "page": "https://commons.wikimedia.org/wiki/File:Bundesautobahn_A6.flac",
+  "licence": "CC BY 3.0",
+  "author": "Erdie",
+  "start": 90,
+  "seconds": 120
+ },
+ "amb_cicadas": {
+  "title": "Cicada orni.ogg",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Cicada_orni.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "page": "https://commons.wikimedia.org/wiki/File:Cicada_orni.ogg",
+  "licence": "Public domain",
+  "author": "DavidDelon",
+  "start": 1,
+  "seconds": 60
+ },
+ "amb_frogs": {
+  "title": "Spring Peeper Frogs (Pseudacris crucifer) singing on night of April 21 of 2019 in North Pittston PA.ogg",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/0/07/Spring_Peeper_Frogs_%28Pseudacris_crucifer%29_singing_on_night_of_April_21_of_2019_in_North_Pittston_PA.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "page": "https://commons.wikimedia.org/wiki/File:Spring_Peeper_Frogs_(Pseudacris_crucifer)_singing_on_night_of_April_21_of_2019_in_North_Pittston_PA.ogg",
+  "licence": "CC0",
+  "author": "JohnDziak",
+  "start": 0.5,
+  "seconds": 39
+ },
+ "amb_chimes": {
+  "title": "Windchime.ogg",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/2/28/Windchime.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "page": "https://commons.wikimedia.org/wiki/File:Windchime.ogg",
+  "licence": "Public domain",
+  "author": "stephan",
+  "start": 1,
+  "seconds": 64
  }
 }

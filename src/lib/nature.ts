@@ -23,6 +23,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
       stream: { label: "Forest stream", beds: [["amb_stream", 1], ["amb_birds", .3]] },
       rain: { label: "Rain in the forest", beds: [["amb_rain_leaves", 1]] },
       storm: { label: "Forest thunderstorm", beds: [["amb_rain_heavy", 1]], thunder: true },
+      cicadas: { label: "Summer cicadas", beds: [["amb_forest", .8], ["amb_cicadas", .5]] },
     },
   },
   sunset: {
@@ -31,6 +32,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
       breeze: { label: "Gentle breeze", beds: [["amb_wind", 1], ["amb_evening", .3]] },
       birds: { label: "Evening birds", beds: [["amb_evening", .7], ["amb_wind", .6], ["amb_night", .25]] },
       waves: { label: "Waves at sunset", beds: [["amb_waves", 1], ["amb_wind", .25]] },
+      heat: { label: "Summer heat (cicadas)", beds: [["amb_wind", .8], ["amb_cicadas", .55]] },
     },
   },
   lake: {
@@ -38,6 +40,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
     sounds: {
       water: { label: "Gentle water", beds: [["amb_lake", 1]] },
       evening: { label: "Water + crickets", beds: [["amb_lake", 1], ["amb_night", .5]] },
+      frogs: { label: "Frogs at night", beds: [["amb_lake", .6], ["amb_frogs", .8], ["amb_night", .4]] },
       rain: { label: "Rain on the lake", beds: [["amb_lake", .6], ["amb_rain", 1]] },
     },
   },
@@ -79,6 +82,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
       fire: { label: "Fireplace", beds: [["amb_fire", 1]] },
       storm: { label: "Thunderstorm", beds: [["amb_rain_heavy", 1]], thunder: true },
       birds: { label: "Birds", beds: [["amb_forest", .7], ["amb_birds", .7]] },
+      chimes: { label: "Porch wind chimes", beds: [["amb_wind", .8], ["amb_chimes", .6], ["amb_birds", .25]] },
     },
   },
   meadow: {
@@ -86,6 +90,16 @@ export const ENVIRONMENTS: Record<string, Env> = {
     sounds: {
       breeze: { label: "Breeze + birds", beds: [["amb_wind", 1], ["amb_birds", .55]] },
       summer: { label: "Summer evening", beds: [["amb_night", 1], ["amb_evening", .4], ["amb_wind", .3]] },
+      heat: { label: "Hot afternoon (cicadas)", beds: [["amb_wind", .7], ["amb_cicadas", .6], ["amb_birds", .2]] },
+    },
+  },
+  city: {
+    label: "City view", emoji: "🌆", search: "city aerial traffic sunset",
+    sounds: {
+      balcony: { label: "Distant city + breeze", beds: [["amb_city", 1], ["amb_highway", .5], ["amb_wind", .6]] },
+      night: { label: "City at night", beds: [["amb_highway", .8], ["amb_city", .4], ["amb_night", .45]] },
+      heat: { label: "Hot city afternoon", beds: [["amb_city", .8], ["amb_cicadas", .35], ["amb_wind", .45]] },
+      rain: { label: "Rain over the city", beds: [["amb_rain", 1], ["amb_city", .5]] },
     },
   },
   night: {
@@ -93,6 +107,7 @@ export const ENVIRONMENTS: Record<string, Env> = {
     sounds: {
       crickets: { label: "Crickets", beds: [["amb_night", 1]] },
       breeze: { label: "Crickets + breeze", beds: [["amb_night", 1], ["amb_wind", .4]] },
+      frogs: { label: "Frogs + crickets", beds: [["amb_night", .8], ["amb_frogs", .6]] },
     },
   },
 };
