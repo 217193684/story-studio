@@ -125,10 +125,61 @@ def calm_jobs():
             except Exception as e2: log("couldn't report failure:", e2)
 
 
+def youtube_upload(job):
+    """Puts a finished video on the YouTube channel: fetch it from GitHub, then a resumable upload in 32 MB pieces."""
+    vid, meta, tok = job["id"], job.get("yt_meta") or {}, job["access_token"]
+    def report(body):
+        try: call(f"/api/jobs/youtube/{vid}", body, timeout=30)
+        except Exception as e: log("youtube report failed:", e)
+    path = Path(f"/tmp/yt-{vid}.mp4")
+    log(f"== YouTube upload: {meta.get('title')}")
+    with urllib.request.urlopen(job["video_url"], timeout=600) as r, open(path, "wb") as f:
+        while True:
+            b = r.read(1 << 22)
+            if not b: break
+            f.write(b)
+    size = path.stat().st_size
+    info = {"snippet": {"title": meta["title"][:100], "description": meta.get("description", "")[:4900], "tags": meta.get("tags", []), "categoryId": "10"},
+            "status": {"privacyStatus": meta.get("privacy", "private"), "selfDeclaredMadeForKids": False, "embeddable": True}}
+    req = urllib.request.Request("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", data=json.dumps(info).encode(), method="POST",
+                                 headers={"authorization": f"Bearer {tok}", "content-type": "application/json; charset=UTF-8", "x-upload-content-length": str(size), "x-upload-content-type": "video/mp4"})
+    session = urllib.request.urlopen(req, timeout=60).headers["Location"]
+    chunk, sent, last = 32 << 20, 0, 0.0
+    with open(path, "rb") as f:
+        while sent < size:
+            f.seek(sent); data = f.read(chunk); end = sent + len(data) - 1
+            put = urllib.request.Request(session, data=data, method="PUT", headers={"authorization": f"Bearer {tok}", "content-length": str(len(data)), "content-range": f"bytes {sent}-{end}/{size}"})
+            for attempt in range(5):
+                try:
+                    r = urllib.request.urlopen(put, timeout=300); body = json.loads(r.read() or b"{}")
+                    report({"action": "done", "video_id": body["id"]}); log("on YouTube:", body["id"]); path.unlink(missing_ok=True); return
+                except urllib.error.HTTPError as e:
+                    if e.code == 308:                                   # piece received, carry on from where YouTube says
+                        rng = e.headers.get("Range"); sent = int(rng.split("-")[1]) + 1 if rng else sent; break
+                    if e.code in (500, 502, 503, 504) and attempt < 4: time.sleep(2 ** attempt * 3); continue
+                    raise RuntimeError(f"YouTube said {e.code}: {e.read()[:300].decode('utf-8', 'replace')}")
+                except (TimeoutError, ConnectionError, urllib.error.URLError) as e:
+                    if attempt < 4: time.sleep(2 ** attempt * 3); continue
+                    raise
+            if time.time() - last > 10: last = time.time(); report({"action": "progress", "pct": round(100 * sent / size, 1)})
+
+
+def youtube_jobs():
+    while time.time() < DEADLINE:
+        job = call("/api/jobs/youtube/claim", {})
+        if job.get("idle"): return
+        try: youtube_upload(job)
+        except Exception as e:
+            traceback.print_exc()
+            try: call(f"/api/jobs/youtube/{job['id']}", {"action": "fail", "error": f"YouTube upload failed: {e}"[:900]})
+            except Exception as e2: log("couldn't report failure:", e2)
+
+
 def main():
     pend = json.loads(urllib.request.urlopen(API + "/api/jobs/pending", timeout=60).read())
     log("waiting on the website:", pend)
     if pend.get("calm"): calm_jobs()
+    if pend.get("calm") or pend.get("youtube"): youtube_jobs()
     if not pend.get("planning") and not pend.get("queued"): return
     while time.time() < DEADLINE:
         advance_planning()

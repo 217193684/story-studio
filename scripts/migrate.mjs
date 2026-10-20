@@ -41,6 +41,12 @@ create table if not exists calm_videos (
 );
 create index if not exists calm_status_idx on calm_videos(status, created_at);
 alter table calm_videos add column if not exists options jsonb not null default '{}'::jsonb;
+alter table calm_videos add column if not exists yt_state text;
+alter table calm_videos add column if not exists yt_video_id text;
+alter table calm_videos add column if not exists yt_error text;
+alter table calm_videos add column if not exists yt_meta jsonb not null default '{}'::jsonb;
+alter table calm_videos add column if not exists yt_claimed_at timestamptz;
+create table if not exists youtube_auth (id integer primary key default 1, token text not null, channel_id text, channel_title text, updated_at timestamptz not null default now());
 `);
 await c.end();
 console.log("migration ok");

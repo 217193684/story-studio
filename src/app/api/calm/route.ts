@@ -5,10 +5,10 @@ import { CALM_SCENES, LENGTHS } from "@/lib/calm";
 import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS } from "@/lib/nature";
 
 export const dynamic = "force-dynamic";
-export type CalmRow = { id: string; scene: string; weather: string; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string; options: Record<string, unknown> };
+export type CalmRow = { id: string; scene: string; weather: string; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string; options: Record<string, unknown>; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: Record<string, unknown> };
 
 export async function GET() {
-  const rows = await q<CalmRow>(`select id, scene, weather, minutes, status, progress, video_url, error, created_at, options from calm_videos order by created_at desc limit 60`);
+  const rows = await q<CalmRow>(`select id, scene, weather, minutes, status, progress, video_url, error, created_at, options, yt_state, yt_video_id, yt_error, yt_meta from calm_videos order by created_at desc limit 60`);
   return json(rows);
 }
 

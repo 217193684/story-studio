@@ -4,13 +4,58 @@ import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type We
 import { ENVIRONMENTS, MUSIC, natureYoutube, type NatureOptions } from "@/lib/nature";
 import NaturePicker from "./NaturePicker";
 
-type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
+type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: { pct?: number; privacy?: string }; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
 const STATUS: Record<string, string> = { queued: "Waiting for the video maker", rendering: "Being made", done: "Ready", failed: "Needs attention" };
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
 
 function Copy({ text, label }: { text: string; label: string }) {
   const [ok, setOk] = useState(false);
   return <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={async () => { await navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}>{ok ? "Copied" : label}</button>;
+}
+
+type YT = { setup: boolean; connected?: boolean; channel?: string | null };
+
+function YouTubeBar({ yt, reload }: { yt: YT | null; reload: () => void }) {
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    const m = new URLSearchParams(location.search).get("yt"); if (!m) return;
+    setMsg(m.startsWith("connected:") ? `Connected to ${m.slice(10)} ✓` : m === "setup" ? "YouTube isn't set up on the website yet (Google keys missing in Vercel)." : m);
+    history.replaceState(null, "", "/calm");
+  }, []);
+  if (!yt) return null;
+  return (
+    <div className="panel row" style={{ justifyContent: "space-between", gap: 10, padding: "12px 16px" }}>
+      <span>{!yt.setup ? <>▶️ <b>YouTube</b> <span className="muted small">— add the Google keys in Vercel to send videos straight to your channel</span></>
+        : yt.connected ? <>▶️ Sending to <b>{yt.channel}</b></> : <>▶️ <b>YouTube</b> <span className="muted small">— connect once, then send finished videos straight to your channel</span></>}</span>
+      {yt.setup && (yt.connected
+        ? <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={async () => { await fetch("/api/youtube/status", { method: "DELETE" }); reload(); }}>Disconnect</button>
+        : <a className="btn" href="/api/youtube/connect">Connect YouTube</a>)}
+      {msg && <p className="small" style={{ margin: 0, width: "100%" }}>{msg}</p>}
+    </div>
+  );
+}
+
+function SendToYouTube({ r, yt, meta, reload }: { r: Row; yt: YT | null; meta: { title: string; description: string; tags: string[] }; reload: () => void }) {
+  const [privacy, setPrivacy] = useState("private"); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  if (r.yt_state === "done" && r.yt_video_id) return <a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>;
+  if (r.yt_state === "queued") return <p className="small muted" style={{ margin: 0 }}>▶️ Waiting to upload to YouTube…</p>;
+  if (r.yt_state === "uploading") return <div><div className="bar" role="progressbar" aria-valuenow={Math.round(r.yt_meta?.pct || 0)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(3, r.yt_meta?.pct || 0)}%` }} /></div><p className="small muted" style={{ margin: "6px 0 0" }}>Uploading to YouTube ({Math.round(r.yt_meta?.pct || 0)}%)</p></div>;
+  if (!yt?.connected) return null;
+  async function send() {
+    setBusy(true); setErr("");
+    const res = await fetch(`/api/calm/${r.id}/youtube`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...meta, privacy }) });
+    setBusy(false); if (!res.ok) { setErr((await res.json()).error || "Couldn't send"); return; } reload();
+  }
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      {r.yt_state === "failed" && <p className="small" style={{ color: "var(--rose)", margin: 0 }}>{r.yt_error}</p>}
+      <div className="row" style={{ gap: 6 }}>
+        {[["private", "Private"], ["unlisted", "Unlisted"], ["public", "Public"]].map(([k, l]) => <button key={k} className={`chip ${privacy === k ? "on" : ""}`} onClick={() => setPrivacy(k)} aria-pressed={privacy === k}>{l}</button>)}
+      </div>
+      <button className="btn" onClick={send} disabled={busy}>{busy ? "Sending…" : r.yt_state === "failed" ? "Try YouTube again" : "Send to YouTube"}</button>
+      {err && <p className="small" style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
+    </div>
+  );
 }
 
 export default function CalmStudio() {
@@ -22,10 +67,12 @@ export default function CalmStudio() {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [ask, setAsk] = useState("");
   const S = CALM_SCENES[scene];
 
+  const [yt, setYt] = useState<YT | null>(null);
   const load = useCallback(async () => { const r = await fetch("/api/calm", { cache: "no-store" }); if (r.ok) setRows(await r.json()); }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadYt = useCallback(async () => { const r = await fetch("/api/youtube/status", { cache: "no-store" }); if (r.ok) setYt(await r.json()); }, []);
+  useEffect(() => { load(); loadYt(); }, [load, loadYt]);
   useEffect(() => {   // keep the bars moving while anything is being made
-    if (!rows?.some((r) => r.status === "queued" || r.status === "rendering")) return;
+    if (!rows?.some((r) => r.status === "queued" || r.status === "rendering" || r.yt_state === "queued" || r.yt_state === "uploading")) return;
     const id = setTimeout(load, 6000); return () => clearTimeout(id);
   }, [rows, load]);
   useEffect(() => { if (!(S.weathers as readonly string[]).includes(weather)) setWeather(S.weathers[0] as Weather); }, [scene, S.weathers, weather]);
@@ -41,6 +88,7 @@ export default function CalmStudio() {
   return (
     <div style={{ display: "grid", gap: 22 }}>
       <div><h1>Calm videos</h1><p className="muted" style={{ marginTop: 6 }}>Long relaxing videos for sleep, study and calm: real nature with real nature sounds, or cozy cartoon loops.</p></div>
+      <YouTubeBar yt={yt} reload={loadYt} />
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "nature"} className={tab === "nature" ? "on" : ""} onClick={() => setTab("nature")}>🌿 Nature</button>
         <button role="tab" aria-selected={tab === "cartoon"} className={tab === "cartoon" ? "on" : ""} onClick={() => setTab("cartoon")}>🐱 Cartoon scenes</button>
@@ -74,7 +122,7 @@ export default function CalmStudio() {
         <div style={{ display: "grid", gap: 14 }}>
           {rows.map((r) => {
             const nat = r.scene === "nature" && r.options?.clip ? r.options : null;
-            const yt = nat ? natureYoutube(nat, r.minutes) : youtubeFor(r.scene as CalmScene, r.weather, r.minutes), pct = r.status === "done" ? 100 : r.progress?.pct ?? 5;
+            const ytText = nat ? natureYoutube(nat, r.minutes) : youtubeFor(r.scene as CalmScene, r.weather, r.minutes), pct = r.status === "done" ? 100 : r.progress?.pct ?? 5;
             return (
               <div key={r.id} className="panel" style={{ display: "grid", gap: 12 }}>
                 <div className="row" style={{ justifyContent: "space-between" }}>
@@ -91,9 +139,10 @@ export default function CalmStudio() {
                   <div className="grid2">
                     <video src={r.video_url} controls preload="none" style={{ width: "100%", borderRadius: 12, background: "#000" }} />
                     <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                      <a className="btn" href={r.video_url}>Download video</a>
-                      <div className="row"><Copy text={yt.title} label="Copy YouTube title" /><Copy text={yt.description} label="Copy description" /><Copy text={yt.tags.join(", ")} label="Copy tags" /></div>
-                      <p className="small muted" style={{ margin: 0 }}>{yt.title}</p>
+                      <SendToYouTube r={r} yt={yt} meta={ytText} reload={load} />
+                      <a className="btn quiet" href={r.video_url}>Download video</a>
+                      <div className="row"><Copy text={ytText.title} label="Copy YouTube title" /><Copy text={ytText.description} label="Copy description" /><Copy text={ytText.tags.join(", ")} label="Copy tags" /></div>
+                      <p className="small muted" style={{ margin: 0 }}>{ytText.title}</p>
                     </div>
                   </div>
                 )}
