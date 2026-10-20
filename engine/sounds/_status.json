@@ -1,17 +1,16 @@
 {
- "time": "2026-10-20 15:14 UTC",
+ "time": "2026-10-20 15:15 UTC",
  "made": [
-  "amb_rain_heavy"
+  "amb_waves",
+  "amb_stream",
+  "amb_forest",
+  "amb_fire"
  ],
  "already_had": [],
  "stopped_because": null,
  "credits_before": null,
  "credits_after": null,
  "missing": [
-  "amb_waves",
-  "amb_stream",
-  "amb_forest",
-  "amb_fire",
   "amb_waterfall",
   "amb_lake",
   "amb_evening",
