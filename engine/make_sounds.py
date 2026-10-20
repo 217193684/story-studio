@@ -72,6 +72,11 @@ SOUNDS = {
     "slide_whistle": (f"A cartoon slide whistle going up, {CLEAN}", 1.2),
     "slide_down": (f"A cartoon slide whistle going down, {CLEAN}", 1.2),
     "wow": ("A small crowd going 'ooooh' in amazement", 2),
+    # soft ASMR sounds for the cozy cat videos
+    "asmr_lid": ("Close-up ASMR: a plastic lunch box lid gently clicking open and lifted off, soft and crisp, quiet room, no music", 1.5),
+    "asmr_pick": ("Close-up ASMR: chopsticks gently picking up a piece of food from a lunch box, soft wooden tap, quiet, no music", 1),
+    "asmr_chew": ("Close-up ASMR: soft gentle chewing of rice and food, a few small bites, quiet and satisfying, no music, no voice", 2.5),
+    "asmr_sip": ("Close-up ASMR: a gentle sip of hot tea from a cup, then setting the cup down softly, no music", 2.5),
 }
 
 
