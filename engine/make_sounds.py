@@ -77,6 +77,11 @@ SOUNDS = {
     "asmr_pick": ("Close-up ASMR: chopsticks gently picking up a piece of food from a lunch box, soft wooden tap, quiet, no music", 1),
     "asmr_chew": ("Close-up ASMR: soft gentle chewing of rice and food, a few small bites, quiet and satisfying, no music, no voice", 2.5),
     "asmr_sip": ("Close-up ASMR: a gentle sip of hot tea from a cup, then setting the cup down softly, no music", 2.5),
+    "asmr_chop": ("Close-up ASMR: a sharp knife chopping a fresh carrot on a wooden cutting board, three crisp chops, quiet kitchen, no music", 1.5),
+    "asmr_simmer": ("Close-up ASMR: a pot of soup gently simmering and bubbling on a stove, soft and continuous, quiet kitchen, no music", 20),
+    "asmr_stir": ("Close-up ASMR: a wooden spoon slowly stirring soup in a pot, soft liquid sounds, no music", 3),
+    "asmr_drop": ("Close-up ASMR: chopped vegetable slices sliding off a cutting board and dropping into a pot of soup, soft splash, no music", 1.5),
+    "asmr_sprinkle": ("Close-up ASMR: shaking a salt shaker a few times over a pot, soft gentle sprinkle, no music", 1.5),
 }
 
 
