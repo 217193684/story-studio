@@ -97,10 +97,16 @@ def make_calm(job):
         if time.time() - last[0] < 6: return
         last[0] = time.time(); report(10 + 70 * f, f"Drawing the scene ({int(f * 100)}%)")
     log(f"== calm video: {job['scene']} / {job['weather']} / {mins} min ({cid})")
-    report(10, "Drawing the scene")
     work = Path(f"/tmp/calm-{cid}"); work.mkdir(parents=True, exist_ok=True)
-    out = work / f"{job['scene'].replace('_', '-')}-{job['weather']}-{mins}min.mp4"
-    make_video(job["scene"], out, mins, job["weather"], progress=drawing, log=log)
+    if job["scene"] == "nature":   # a real nature clip, looped, with nature sounds and music
+        from nature import make_nature
+        o = job.get("options") or {}
+        out = work / f"nature-{job['weather']}-{o.get('sound', 'sound')}-{mins}min.mp4"
+        make_nature(o, out, mins, progress=report, log=log)
+    else:
+        report(10, "Drawing the scene")
+        out = work / f"{job['scene'].replace('_', '-')}-{job['weather']}-{mins}min.mp4"
+        make_video(job["scene"], out, mins, job["weather"], progress=drawing, log=log)
     report(85, f"Uploading the {mins}-minute video ({out.stat().st_size // 1_000_000} MB)")
     tag = f"calm-{cid[:8]}-{os.environ.get('GITHUB_RUN_ID', int(time.time()))}"
     subprocess.run(["gh", "release", "create", tag, str(out), "--repo", REPO, "--title", f"Calm: {job['scene']} {job['weather']} {mins} min", "--notes", f"Calm video {cid}"], check=True)

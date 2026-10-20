@@ -67,3 +67,13 @@ video{width:100%;border-radius:var(--r-lg);background:#000;display:block}
 .calm-scene.on { border-color: var(--sun); box-shadow: inset 0 0 0 1.5px var(--sun); background: #fffaeb; }
 .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: 700 14px var(--body); cursor: pointer; }
 .chip.on { background: var(--sun); border-color: var(--sun); color: var(--sun-ink); }
+.tabs { display: flex; gap: 6px; padding: 4px; background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; width: fit-content; }
+.tabs button { padding: 8px 16px; border-radius: 999px; border: 0; background: none; font: 700 14px var(--body); color: var(--ink); cursor: pointer; }
+.tabs button.on { background: var(--sun); color: var(--sun-ink); }
+.clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.clip { border: 1.5px solid var(--line); border-radius: var(--r-sm); overflow: hidden; background: var(--card); }
+.clip.on { border-color: var(--sun); box-shadow: 0 0 0 2px var(--sun); }
+.clip-media { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0; background: #0e1420; cursor: pointer; color: #fff; }
+.clip-media img, .clip-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.clip-len { position: absolute; right: 6px; bottom: 6px; font: 700 12px var(--body); font-style: normal; background: rgba(0,0,0,.6); padding: 2px 6px; border-radius: 6px; }
+@media (max-width: 520px) { .clip-grid { grid-template-columns: 1fr 1fr; gap: 8px; } }

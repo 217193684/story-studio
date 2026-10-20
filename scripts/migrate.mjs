@@ -40,6 +40,7 @@ create table if not exists calm_videos (
   updated_at timestamptz not null default now()
 );
 create index if not exists calm_status_idx on calm_videos(status, created_at);
+alter table calm_videos add column if not exists options jsonb not null default '{}'::jsonb;
 `);
 await c.end();
 console.log("migration ok");

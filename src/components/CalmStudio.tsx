@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type Weather } from "@/lib/calm";
+import { ENVIRONMENTS, MUSIC, natureYoutube, type NatureOptions } from "@/lib/nature";
+import NaturePicker from "./NaturePicker";
 
-type Row = { id: string; scene: CalmScene; weather: Weather; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
+type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
 const STATUS: Record<string, string> = { queued: "Waiting for the video maker", rendering: "Being made", done: "Ready", failed: "Needs attention" };
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
 
@@ -12,6 +14,7 @@ function Copy({ text, label }: { text: string; label: string }) {
 }
 
 export default function CalmStudio() {
+  const [tab, setTab] = useState<"nature" | "cartoon">("nature");
   const [scene, setScene] = useState<CalmScene>("cat_sleep");
   const [weather, setWeather] = useState<Weather>("rain");
   const [minutes, setMinutes] = useState(90);
@@ -37,9 +40,13 @@ export default function CalmStudio() {
 
   return (
     <div style={{ display: "grid", gap: 22 }}>
-      <div><h1>Calm videos</h1><p className="muted" style={{ marginTop: 6 }}>Cozy animated loops for sleep, study and relaxing. Pick a scene, the weather outside and how long it should be.</p></div>
+      <div><h1>Calm videos</h1><p className="muted" style={{ marginTop: 6 }}>Long relaxing videos for sleep, study and calm: real nature with real nature sounds, or cozy cartoon loops.</p></div>
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={tab === "nature"} className={tab === "nature" ? "on" : ""} onClick={() => setTab("nature")}>🌿 Nature</button>
+        <button role="tab" aria-selected={tab === "cartoon"} className={tab === "cartoon" ? "on" : ""} onClick={() => setTab("cartoon")}>🐱 Cartoon scenes</button>
+      </div>
 
-      <div className="panel" style={{ display: "grid", gap: 18 }}>
+      {tab === "nature" ? <NaturePicker onMade={load} /> : <div className="panel" style={{ display: "grid", gap: 18 }}>
         <div>
           <h3 style={{ marginBottom: 10 }}>Scene</h3>
           <div className="calm-scenes">
@@ -61,16 +68,18 @@ export default function CalmStudio() {
         <div className="row"><button className="btn" onClick={make} disabled={busy}>{busy ? "Adding…" : `Make a ${len(minutes)} video`}</button>
           <span className="small muted">Usually ready within 5–10 minutes, whatever the length (long videos take a few extra minutes to upload; 90 min ≈ 1.2 GB).</span></div>
         {err && <p style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
-      </div>
+      </div>}
 
       {rows === null ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No calm videos yet. Make your first one above.</p> : (
         <div style={{ display: "grid", gap: 14 }}>
           {rows.map((r) => {
-            const yt = youtubeFor(r.scene, r.weather, r.minutes), pct = r.status === "done" ? 100 : r.progress?.pct ?? 5;
+            const nat = r.scene === "nature" && r.options?.clip ? r.options : null;
+            const yt = nat ? natureYoutube(nat, r.minutes) : youtubeFor(r.scene as CalmScene, r.weather, r.minutes), pct = r.status === "done" ? 100 : r.progress?.pct ?? 5;
             return (
               <div key={r.id} className="panel" style={{ display: "grid", gap: 12 }}>
                 <div className="row" style={{ justifyContent: "space-between" }}>
-                  <div><b>{CALM_SCENES[r.scene]?.label || r.scene}</b> <span className="muted">· {weatherLabel(r.scene, r.weather)} · {len(r.minutes)}</span></div>
+                  {nat ? <div><b>{ENVIRONMENTS[nat.env]?.emoji} {ENVIRONMENTS[nat.env]?.label}</b> <span className="muted">· {ENVIRONMENTS[nat.env]?.sounds[nat.sound]?.label}{nat.music !== "none" ? ` + ${MUSIC[nat.music]?.label.toLowerCase()}` : ""} · {len(r.minutes)}</span></div>
+                    : <div><b>{CALM_SCENES[r.scene as CalmScene]?.label || r.scene}</b> <span className="muted">· {weatherLabel(r.scene, r.weather)} · {len(r.minutes)}</span></div>}
                   <span className={`pill ${r.status}`}>{STATUS[r.status] || r.status}</span>
                 </div>
                 {r.status !== "failed" && r.status !== "done" && (
