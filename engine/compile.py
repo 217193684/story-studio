@@ -34,7 +34,12 @@ MALE = ["am_michael", "bm_george", "am_adam", "bm_lewis", "am_eric", "am_onyx", 
 # a key is present.
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY")
 # multilingual_v2 is ElevenLabs' most expressive, natural narration model (turbo is faster but flatter)
-ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+# eleven_v3: ElevenLabs' most expressive model — it acts out tone tags like [whispers] or [scared].
+# If the account can't use it, the run drops to eleven_multilingual_v2 (still very natural), then to the free voice.
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_v3")
+ELEVEN_BACKUP_MODEL = "eleven_multilingual_v2"
+TONES = {"whispers", "whispering", "scared", "nervous", "angry", "shouting", "crying", "sad", "laughs", "laughing", "sighs", "excited",
+         "happy", "sarcastic", "curious", "mischievously", "softly", "calm", "suspenseful", "dramatic", "tired", "surprised", "gasps", "trembling", "menacing", "cheerful"}
 _EL_VOICES = None
 _EL_STATUS = {"used": 0, "error": None}  # reported on the website so we can see which voice a video really used
 
@@ -77,14 +82,23 @@ def _eleven_voice_id(name):
 
 
 def _eleven_tts(text, voice_id, speed):
-    body = json.dumps({"text": text, "model_id": ELEVEN_MODEL,
-                        "voice_settings": {"stability": .5, "similarity_boost": .75, "style": .25, "use_speaker_boost": True, "speed": round(float(speed), 2)}}).encode()
-    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}", data=body, method="POST",
+    global ELEVEN_MODEL
+    if ELEVEN_MODEL == "eleven_v3":  # v3 takes stability as its main control (0 creative, .5 natural, 1 robust)
+        settings = {"stability": .5, "similarity_boost": .75}
+    else:
+        settings = {"stability": .5, "similarity_boost": .75, "style": .25, "use_speaker_boost": True, "speed": round(float(speed), 2)}
+    body = json.dumps({"text": text, "model_id": ELEVEN_MODEL, "voice_settings": settings}).encode()
+    req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=mp3_44100_128", data=body, method="POST",
                                   headers={"xi-api-key": ELEVEN_KEY, "accept": "audio/mpeg", "content-type": "application/json"})
     try:
-        return urllib.request.urlopen(req, timeout=90).read()
+        return urllib.request.urlopen(req, timeout=120).read()
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"ElevenLabs speech failed: {e.code} {e.read()[:300]!r}") from e
+        msg = e.read()[:300]
+        if e.code in (400, 403, 422) and ELEVEN_MODEL != ELEVEN_BACKUP_MODEL and b"quota" not in msg:
+            print(f"{ELEVEN_MODEL} not available ({e.code} {msg!r}); using {ELEVEN_BACKUP_MODEL}")
+            ELEVEN_MODEL = ELEVEN_BACKUP_MODEL; _EL_STATUS["note"] = f"v3 unavailable: {e.code}"
+            return _eleven_tts(text.split("] ", 1)[-1] if text.startswith("[") else text, voice_id, speed)
+        raise RuntimeError(f"ElevenLabs speech failed: {e.code} {msg!r}") from e
 
 
 ALL_VOICES = FEMALE + MALE + ["af_sky", "af_alloy", "af_aoede", "am_santa"]
@@ -141,26 +155,31 @@ def _kokoro_tts(text, voice, bspeed, f):
     sf.write(f, s, sr)
 
 
-def tts(text, voice, speed, pitch=1.0):
-    """Returns float32 audio at SR. Cached on disk. Uses ElevenLabs when ELEVENLABS_API_KEY is set and working, else free Kokoro."""
+def tts(text, voice, speed, pitch=1.0, tone=None):
+    """Returns float32 audio at SR. Cached on disk. Uses ElevenLabs when ELEVENLABS_API_KEY is set and working, else free Kokoro.
+    tone (e.g. "whispers") is acted out by Eleven v3 and ignored by other voices; it never appears in the captions."""
     global _eleven_down
     use_eleven = bool(ELEVEN_KEY) and not _eleven_down
     backend = "el" if use_eleven else "ko"
-    key = hashlib.sha1(f"{backend}|{voice}|{speed}|{pitch}|{text}".encode()).hexdigest()[:16]
+    if use_eleven: pitch = 1.0  # real voices aren't pitch-shifted: that's what made them sound processed
+    tag = str(tone or "").strip().lower().strip("[]")
+    tag = tag if tag in TONES else ""
+    key = hashlib.sha1(f"{backend}|{voice}|{speed}|{pitch}|{tag}|{text}".encode()).hexdigest()[:16]
     cache = HERE / ".cache"; cache.mkdir(exist_ok=True); f = cache / f"{key}.wav"
     if not f.exists():
         bspeed = max(.5, min(2., speed / pitch))
         if use_eleven:
             try:
                 vid = _eleven_voice_id(voice)
-                mp3 = _eleven_tts(text, vid, max(.7, min(1.2, bspeed)))
+                spoken = f"[{tag}] {text}" if tag and ELEVEN_MODEL == "eleven_v3" else text
+                mp3 = _eleven_tts(spoken, vid, max(.7, min(1.2, bspeed)))
                 tmp = cache / f"{key}.mp3"; tmp.write_bytes(mp3)
-                subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", "24000", "-ac", "1", str(f)], check=True, capture_output=True)
+                subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", str(SR), "-ac", "1", str(f)], check=True, capture_output=True)  # full quality, no resampling later
                 tmp.unlink(missing_ok=True); _EL_STATUS["used"] += 1
             except Exception as e:
                 print(f"ElevenLabs voice failed ({e}); using the free voice for the rest of this video.")
                 _eleven_down = True; _EL_STATUS["error"] = str(e)[:300]
-                return tts(text, voice, speed, pitch)  # retry this line on Kokoro, with its own cache key
+                return tts(text, voice, speed, pitch, tone)  # retry this line on Kokoro, with its own cache key
         else:
             _kokoro_tts(text, KOKORO_FALLBACK.get(voice, voice) if voice.startswith("el:") else voice, bspeed, f)
     a, sr = sf.read(f)
@@ -342,7 +361,7 @@ def compile_plan(plan, out_dir, log=print, progress=None):
                 who = b["say"]; text = str(b.get("text", "")).strip()
                 if not text or SPEECH_TAG.match(text): continue
                 if who is None or str(who).lower() in ("narrator", "narration", "voiceover"):
-                    a = tts(text, nv, .96 if style != "horror" else .9)
+                    a = tts(text, nv, .96 if style != "horror" else .9, tone=b.get("tone"))
                     line_done()
                     voice_clips.append((bs + .05, a, 1.0))
                     captions.append({"t0": round(bs + .05, 3), "t1": round(bs + .05 + len(a) / SR, 3), "narrator": True, "words": word_times(text, bs + .05, bs + .05 + len(a) / SR)})
@@ -353,7 +372,7 @@ def compile_plan(plan, out_dir, log=print, progress=None):
                     off = bool(b.get("offscreen"))
                     if not off and not cur[who].get("visible", True): ev(who, bs, visible=True)
                     c = cast[who]; sp, pitch = voice_params(c)
-                    a = tts(text, voices[who], sp * float(b.get("speed", 1)), pitch)
+                    a = tts(text, voices[who], sp * float(b.get("speed", 1)), pitch, tone=b.get("tone"))
                     line_done()
                     voice_clips.append((bs + .05, a, 1.0))
                     if not off: talk.setdefault(who, []).append([round(bs + .05, 3), FPS, mouth_env(a)])
@@ -455,8 +474,8 @@ def compile_plan(plan, out_dir, log=print, progress=None):
          "cast": cast, "scenes": scenes, "captions": captions, "talk": talk, "captionsOn": plan.get("captions", True), "report": sorted(set(rep.items))}
     if not ELEVEN_KEY: D["report"].insert(0, "Voice: free voice (no ElevenLabs key found)")
     elif _EL_STATUS["error"]: D["report"].insert(0, f"Voice: ElevenLabs for {_EL_STATUS['used']} lines, then the free voice — ElevenLabs said: {_EL_STATUS['error']}")
-    else: D["report"].insert(0, f"Voice: ElevenLabs ({ELEVEN_MODEL}), {_EL_STATUS['used']} lines")
-    D["report"].insert(1, f"Sound effects: {sound.real_count()} real recordings in the library, the rest made by code")
+    else: D["report"].insert(0, f"Voice: ElevenLabs ({ELEVEN_MODEL}), {_EL_STATUS['used']} lines" + (f" — {_EL_STATUS['note']}" if _EL_STATUS.get("note") else ""))
+    D["report"].insert(1, f"Sounds: {sound.real_count()} real sound effects, {sound.real_count(music=True)} of 12 real music tracks (code-made for any mood without one)")
     # ---- sound
     n = int((total + 1) * SR)
     voice = np.zeros(n, np.float32)

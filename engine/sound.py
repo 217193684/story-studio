@@ -40,7 +40,9 @@ def _real(name):
     return a
 
 
-def real_count(): return len([p for p in REAL.glob("*.mp3")]) if REAL.exists() else 0
+def real_count(music=False):
+    if not REAL.exists(): return 0
+    return len([p for p in REAL.glob("*.mp3") if p.stem.startswith("music_") == music])
 
 
 def _bed(name, dur, xf=2.0):
@@ -112,7 +114,21 @@ RECIPES = {
 }
 
 
+MUSIC_RMS = .08  # loudness real tracks are matched to (same as the old code-made music, before the final mix)
+
+
+def _real_music(mood):
+    """A real ElevenLabs track for this mood (engine/sounds/music_<mood>.mp3), made to loop with no seam."""
+    a = _real(f"music_{mood}")
+    if a is None or len(a) < 10 * SR: return None
+    x = int(3 * SR); body = a[:-x].copy(); k = np.linspace(0, 1, x)
+    body[:x] = body[:x] * np.sqrt(k) + a[-x:] * np.sqrt(1 - k)
+    return body / (np.sqrt((body ** 2).mean()) + 1e-9) * MUSIC_RMS
+
+
 def music_loop(mood, seed=0):
+    r = _real_music(mood)
+    if r is not None: return r
     R = RECIPES.get(mood, RECIPES['calm']); rng = np.random.RandomState(seed + 7)
     if R.get('drone'):
         d = 16.; t = _t(d); k = R['key']

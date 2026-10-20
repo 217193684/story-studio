@@ -75,6 +75,42 @@ SOUNDS = {
 }
 
 
+# Background music, one instrumental track per mood (names match sound.RECIPES). Made with ElevenLabs Music;
+# each is looped seamlessly under the narration, so it is kept simple, steady and without vocals.
+BG = "instrumental background score for a narrated animated story, steady and consistent all the way through, no vocals, no big drops, no ending, loopable"
+MUSIC = {
+    "music_scary": (f"Dark eerie horror ambience: low drones, distant piano notes, soft unsettling strings, slow, {BG}", 60),
+    "music_tense": (f"Tense suspense: pulsing low strings, ticking rhythm, building unease but restrained, {BG}", 60),
+    "music_mystery": (f"Mysterious and curious: soft plucked strings, celesta, light bass, slow and intriguing, {BG}", 60),
+    "music_sad": (f"Sad and gentle: slow solo piano with soft strings, emotional, {BG}", 60),
+    "music_calm": (f"Calm and warm: soft acoustic guitar and light piano, peaceful, {BG}", 60),
+    "music_happy": (f"Happy and bright: ukulele, light percussion, cheerful and upbeat, {BG}", 60),
+    "music_comedy": (f"Playful comedy: bouncy pizzicato strings, bassoon, quirky and light, {BG}", 60),
+    "music_kids": (f"Friendly children's cartoon: xylophone, glockenspiel, soft claps, joyful, {BG}", 60),
+    "music_romantic": (f"Romantic and tender: soft piano and warm strings, slow, {BG}", 60),
+    "music_action": (f"Action: driving drums and staccato strings, energetic and heroic, {BG}", 60),
+    "music_western": (f"Wild west: twangy acoustic guitar, harmonica, slow galloping rhythm, {BG}", 60),
+    "music_party": (f"Party: upbeat amapiano-style log drum groove, shakers, warm keys, {BG}", 60),
+}
+MUSIC_MODELS = ["music_v2_5", "music_v1"]  # best first; the next is tried if the account can't use one
+
+
+def generate_music(name):
+    prompt, secs = MUSIC[name]
+    last = None
+    for model in MUSIC_MODELS:
+        body = {"prompt": prompt, "music_length_ms": int(secs * 1000), "model_id": model, "force_instrumental": True}
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128", data=json.dumps(body).encode(), method="POST",
+                                     headers={"xi-api-key": KEY, "content-type": "application/json", "accept": "audio/mpeg"})
+        try:
+            data = urllib.request.urlopen(req, timeout=600).read()
+            (OUT / f"{name}.mp3").write_bytes(data); return len(data)
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 422) and model != MUSIC_MODELS[-1]: last = e; print(f"{model} refused ({e.code}), trying the next model"); continue
+            raise
+    raise last
+
+
 def generate(name):
     prompt, secs = SOUNDS[name]
     body = {"text": prompt, "duration_seconds": max(.5, min(22, secs)), "prompt_influence": .45}
@@ -88,24 +124,24 @@ def generate(name):
 def main():
     OUT.mkdir(exist_ok=True)
     args = [a for a in sys.argv[1:] if a != "--redo"]; redo = "--redo" in sys.argv
-    want = args or list(SOUNDS)
+    want = args or list(SOUNDS) + list(MUSIC)
     status = {"time": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "made": [], "already_had": [], "stopped_because": None}
     if not KEY:
         status["stopped_because"] = "ELEVENLABS_API_KEY is not set"
     else:
         for name in want:
-            if name not in SOUNDS: print("unknown sound", name); continue
+            if name not in SOUNDS and name not in MUSIC: print("unknown sound", name); continue
             if (OUT / f"{name}.mp3").exists() and not redo: status["already_had"].append(name); continue
             try:
-                kb = generate(name) // 1024; status["made"].append(name); print(f"made {name} ({kb} KB)")
+                kb = (generate_music(name) if name in MUSIC else generate(name)) // 1024; status["made"].append(name); print(f"made {name} ({kb} KB)")
             except urllib.error.HTTPError as e:
                 msg = e.read()[:400].decode("utf-8", "replace")
                 status["stopped_because"] = f"{name}: ElevenLabs {e.code}: {msg}"
-                if e.code in (401, 403): status["stopped_because"] += "  -> the key needs 'Sound Effects: Access'"
+                if e.code in (401, 403): status["stopped_because"] += "  -> the key needs 'Music Generation: Access'" if name in MUSIC else "  -> the key needs 'Sound Effects: Access'"
                 print(status["stopped_because"]); break  # out of credits / no permission: keep what we made
             except Exception as e:
                 status["stopped_because"] = f"{name}: {e}"; print(status["stopped_because"]); break
-    status["missing"] = [n for n in SOUNDS if not (OUT / f"{n}.mp3").exists()]
+    status["missing"] = [n for n in list(SOUNDS) + list(MUSIC) if not (OUT / f"{n}.mp3").exists()]
     (OUT / "_status.json").write_text(json.dumps(status, indent=1))
     print(json.dumps(status, indent=1))
 
