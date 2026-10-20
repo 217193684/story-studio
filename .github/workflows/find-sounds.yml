@@ -1,7 +1,10 @@
 name: Find nature sounds
 # Run by hand: looks for free (CC0 / public domain / CC BY) nature field recordings on Wikimedia Commons
 # and saves 90-second samples on the "sound-candidates" branch for checking.
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      kinds: { description: "Only these kinds (space separated), blank = all", required: false, default: "" }
 permissions:
   contents: write
 jobs:
@@ -11,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Find and sample recordings
+        env: { KINDS: "${{ inputs.kinds }}" }
         run: sudo apt-get install -y -qq ffmpeg >/dev/null && python3 engine/find_nature_sounds.py
       - name: Save them on the sound-candidates branch
         run: |

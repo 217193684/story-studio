@@ -3,7 +3,7 @@
 Only CC0 / public domain / CC BY (attribution) files are kept — never share-alike (SA), non-commercial (NC) or no-derivatives (ND).
 Each candidate is saved as a 90-second mono mp3 in sound_candidates/<kind>/ with its licence details, for checking by ear and by numbers.
 """
-import json, re, subprocess, tempfile, time, urllib.parse, urllib.request
+import json, os, re, subprocess, tempfile, time, urllib.parse, urllib.request
 from pathlib import Path
 
 OUT = Path("sound_candidates")
@@ -22,7 +22,15 @@ SEARCH = {
     "rain": ["rain", "rain ambience", "rain on leaves", "heavy rain", "rain falling"],
     "thunder": ["thunder", "thunderstorm", "thunder rumble"],
     "fire": ["fireplace crackling", "campfire", "fire crackling", "crackling fire"],
+    "city": ["distant traffic", "city ambience", "city at night ambience", "urban ambience", "traffic hum", "balcony city", "highway distant"],
+    "cicadas": ["cicada", "cicadas", "cicadas summer", "cicada chorus"],
+    "frogs": ["frogs night", "frog chorus", "frogs pond", "toads"],
+    "roof_rain": ["rain on roof", "rain on tin roof", "rain metal roof", "rain gutter"],
+    "train": ["distant train", "train passing", "train horn distant", "freight train"],
+    "bells": ["church bells", "distant church bells", "bells ringing"],
+    "chimes": ["wind chimes", "windchime", "wind chime"],
 }
+LOOSE = {"city": "traffic|car|city", "train": "train"}      # words normally skipped that these kinds need
 OK_LICENCE = re.compile(r"^(cc0|cc-zero|public domain|pd\b|pd-|cc[ -]by[ -][\d.]+)$", re.I)
 BAD_LICENCE = re.compile(r"\b(sa|nc|nd|share ?alike|non-?commercial|no ?deriv)", re.I)
 
@@ -50,6 +58,8 @@ CATEGORY_WORDS = {
     "evening": ["ambience", "soundscape", "field recording"], "forest": ["forest", "woodland", "soundscape"],
     "stream": ["stream", "streams", "brook", "creek", "river"], "waterfall": ["waterfall", "waterfalls"], "lake": ["lake", "pond", "water"],
     "waves": ["sea", "ocean", "waves", "surf"], "rain": ["rain"], "thunder": ["thunder", "thunderstorm"], "fire": ["fire", "campfire", "fireplace"],
+    "city": ["traffic", "city", "urban", "street"], "cicadas": ["cicada", "cicadas", "insects"], "frogs": ["frogs", "frog", "anura", "toads"],
+    "roof_rain": ["rain"], "train": ["train", "trains", "railway"], "bells": ["bells", "church bells"], "chimes": ["wind chimes", "chimes"],
 }
 NOT_NATURE = re.compile(r"\b(isrc|inaugural|address|remarks|president|read by|speech|étude|etude|symphony|op\.|hwv|bwv|episode|radio|interview|lecture|podcast|audiobook|librivox|wikipedia|spoken|news)\b", re.I)
 
@@ -84,7 +94,10 @@ def candidates(kind):
             lic = (m.get("LicenseShortName") or {}).get("value", "")
             if not OK_LICENCE.search(lic) or BAD_LICENCE.search(lic): continue
             if ii.get("size", 0) > 120e6: continue
-            if re.search(r"\b(music|song(?!bird)|speech|voice|spoken|talk|pronunciation|siren|traffic|car|train|city)\b", t, re.I): continue
+            skip = "music|song(?!bird)|speech|voice|spoken|talk|pronunciation|siren|traffic|car|train|city"
+            for w in (LOOSE.get(kind) or "").split("|"):
+                if w: skip = skip.replace("|" + w, "")
+            if re.search(rf"\b({skip})\b", t, re.I): continue
             out.append({"title": t, "url": ii["url"], "page": ii.get("descriptionurl"), "licence": lic,
                         "author": strip((m.get("Artist") or {}).get("value", ""))[:120]})
     return out
@@ -98,7 +111,8 @@ def length(p):
 
 def main():
     report = {}
-    for kind in SEARCH:
+    kinds = os.environ.get("KINDS", "").split() or list(SEARCH)
+    for kind in kinds:
         got = []
         for c in candidates(kind):
             if len(got) >= PER_KIND: break
