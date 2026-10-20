@@ -136,7 +136,7 @@
     g.strokeStyle = '#e8ddcc'; g.lineWidth = 6; g.beginPath(); g.arc(tx + 32, ty - 28, 10, -Math.PI / 2, Math.PI / 2); g.stroke();
     blob(tx, ty - 44, 30, 6, '#6b3e22');
     for (let i = 0; i < 3; i++) {
-      const k = (lp(t, 6) + i / 3) % 1, a = Math.sin(k * Math.PI) * .45;
+      const k = (lp(t, LOOP / 6) + i / 3) % 1, a = Math.sin(k * Math.PI) * .45;
       g.strokeStyle = `rgba(240,235,225,${a * .55})`; g.lineWidth = 10 + k * 10; g.lineCap = 'round'; g.filter = 'blur(3px)'; g.beginPath();
       const x0 = tx - 10 + i * 10, y0 = ty - 50 - k * 70;
       g.moveTo(x0, y0); g.bezierCurveTo(x0 + 14, y0 - 15, x0 - 14, y0 - 30, x0 + Math.sin(k * 6 + i) * 8, y0 - 45); g.stroke(); g.filter = 'none';
