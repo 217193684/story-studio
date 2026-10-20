@@ -10,8 +10,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 UA = {"User-Agent": "StoryStudio/1.0 (calm nature videos; https://story-studio-kappa-one.vercel.app) python-urllib"}
-LOW_CUT = {"thunder": 30, "amb_waves": 45, "amb_rain_heavy": 60, "amb_waterfall": 60}       # keep their deep body
-HIGH_CUT = {"amb_fire": 9000, "amb_rain_heavy": 10000}
+LOW_CUT = {"amb_lake": 160, "amb_fire": 150, "thunder": 30, "amb_waves": 45, "amb_rain_heavy": 60, "amb_waterfall": 60}       # keep their deep body
+HIGH_CUT = {"thunder": 2500, "amb_fire": 9000, "amb_rain_heavy": 10000}
 EVEN_OUT = {"amb_birds", "amb_evening", "amb_fire", "amb_lake", "amb_forest", "amb_rain_leaves"}  # sudden loud bits softened
 
 

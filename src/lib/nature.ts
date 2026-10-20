@@ -17,8 +17,8 @@ export const ENVIRONMENTS: Record<string, Env> = {
   forest: {
     label: "Forest", emoji: "🌲", search: "forest trees sunlight",
     sounds: {
-      birds: { label: "Birdsong", beds: [["amb_forest", 1], ["amb_birds", .4]] },
-      wind: { label: "Wind in the trees", beds: [["amb_forest", .6], ["amb_wind", .7]] },
+      birds: { label: "Birdsong", beds: [["amb_forest", .8], ["amb_birds", .8]] },
+      wind: { label: "Wind in the trees", beds: [["amb_forest", 1], ["amb_wind", .6]] },
       stream: { label: "Forest stream", beds: [["amb_stream", 1], ["amb_birds", .3]] },
       rain: { label: "Rain in the forest", beds: [["amb_rain_leaves", 1]] },
       storm: { label: "Forest thunderstorm", beds: [["amb_rain_heavy", 1]], thunder: true },
@@ -27,9 +27,9 @@ export const ENVIRONMENTS: Record<string, Env> = {
   sunset: {
     label: "Sunset", emoji: "🌅", search: "sunset landscape",
     sounds: {
-      breeze: { label: "Gentle breeze", beds: [["amb_evening", 1], ["amb_wind", .4]] },
-      birds: { label: "Evening birds", beds: [["amb_evening", 1], ["amb_birds", .3]] },
-      waves: { label: "Waves at sunset", beds: [["amb_waves", 1], ["amb_wind", .3]] },
+      breeze: { label: "Gentle breeze", beds: [["amb_wind", 1], ["amb_evening", .3]] },
+      birds: { label: "Evening birds", beds: [["amb_evening", 1], ["amb_wind", .35]] },
+      waves: { label: "Waves at sunset", beds: [["amb_waves", 1], ["amb_wind", .25]] },
     },
   },
   lake: {
@@ -77,14 +77,14 @@ export const ENVIRONMENTS: Record<string, Env> = {
       rain: { label: "Rain on the roof", beds: [["amb_rain", 1]] },
       fire: { label: "Fireplace", beds: [["amb_fire", 1]] },
       storm: { label: "Thunderstorm", beds: [["amb_rain_heavy", 1]], thunder: true },
-      birds: { label: "Birds", beds: [["amb_forest", 1]] },
+      birds: { label: "Birds", beds: [["amb_forest", .7], ["amb_birds", .7]] },
     },
   },
   meadow: {
     label: "Flower meadow", emoji: "🌼", search: "flower meadow wind",
     sounds: {
-      breeze: { label: "Breeze + birds", beds: [["amb_birds", 1], ["amb_wind", .5]] },
-      summer: { label: "Summer evening", beds: [["amb_evening", 1], ["amb_night", .4]] },
+      breeze: { label: "Breeze + birds", beds: [["amb_wind", 1], ["amb_birds", .55]] },
+      summer: { label: "Summer evening", beds: [["amb_night", 1], ["amb_evening", .4], ["amb_wind", .3]] },
     },
   },
   night: {
