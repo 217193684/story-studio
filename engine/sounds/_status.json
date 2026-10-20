@@ -1,10 +1,20 @@
 {
- "time": "2026-10-20 14:36 UTC",
+ "time": "2026-10-20 15:14 UTC",
  "made": [
-  "asmr_pencil",
-  "asmr_page"
+  "amb_rain_heavy"
  ],
  "already_had": [],
  "stopped_because": null,
- "missing": []
+ "credits_before": null,
+ "credits_after": null,
+ "missing": [
+  "amb_waves",
+  "amb_stream",
+  "amb_forest",
+  "amb_fire",
+  "amb_waterfall",
+  "amb_lake",
+  "amb_evening",
+  "amb_rain_leaves"
+ ]
 }
