@@ -25,6 +25,21 @@ create table if not exists stories (
   updated_at timestamptz not null default now()
 );
 create index if not exists stories_status_idx on stories(status, created_at);
+create table if not exists calm_videos (
+  id uuid primary key default gen_random_uuid(),
+  scene text not null,
+  weather text not null default 'rain',
+  minutes integer not null default 60,
+  status text not null default 'queued',
+  progress jsonb not null default '{}'::jsonb,
+  video_url text,
+  error text,
+  run_id text,
+  claimed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists calm_status_idx on calm_videos(status, created_at);
 `);
 await c.end();
 console.log("migration ok");

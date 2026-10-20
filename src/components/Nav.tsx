@@ -9,7 +9,7 @@ export default function Nav() {
   return (
     <header className="top">
       <Link href="/" className="logo"><i />Story Studio</Link>
-      <nav className="nav">{link("/", "My stories")}{link("/new", "New story")}{link("/library", "Library")}</nav>
+      <nav className="nav">{link("/", "My stories")}{link("/new", "New story")}{link("/calm", "Calm videos")}{link("/library", "Library")}</nav>
     </header>
   );
 }

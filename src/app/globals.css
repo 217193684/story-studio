@@ -60,3 +60,10 @@ video{width:100%;border-radius:var(--r-lg);background:#000;display:block}
 .stages .past { color: inherit; opacity: .7; }
 .stages .cur { color: var(--ink); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } .bar.wait > i { animation: none; } }
+
+/* calm videos page */
+.calm-scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.calm-scene { display: grid; gap: 4px; text-align: left; padding: 14px; border-radius: var(--r-sm); border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; cursor: pointer; }
+.calm-scene.on { border-color: var(--sun); box-shadow: inset 0 0 0 1.5px var(--sun); background: #fffaeb; }
+.chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: 700 14px var(--body); cursor: pointer; }
+.chip.on { background: var(--sun); border-color: var(--sun); color: var(--sun-ink); }

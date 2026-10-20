@@ -22,7 +22,7 @@ jobs:
         id: check
         run: |
           r=$(curl -sS --max-time 60 "$API_URL/api/jobs/pending" || echo '{}'); echo "$r"
-          if echo "$r" | grep -Eq '"(planning|queued)":[1-9]'; then echo "work=yes" >> "$GITHUB_OUTPUT"; fi
+          if echo "$r" | grep -Eq '"(planning|queued|calm)":[1-9]'; then echo "work=yes" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/checkout@v4
         if: steps.check.outputs.work == 'yes'
       - uses: actions/setup-python@v5

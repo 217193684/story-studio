@@ -90,6 +90,10 @@ def page_html(lib_name="cozy.js"):
     return f"<html><meta charset='utf-8'><body style='margin:0;background:#000'><canvas id=c width={W} height={H}></canvas><script>{lib}</script></body></html>"
 
 
+import threading
+_done = [0]; _lock = threading.Lock()  # frames drawn so far (for the progress bar)
+
+
 def render_chunk(i0, i1, opts, path, lib="cozy.js", fn="renderCozy"):
     from playwright.sync_api import sync_playwright
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "image2pipe", "-framerate", str(FPS), "-i", "-",
@@ -99,8 +103,48 @@ def render_chunk(i0, i1, opts, path, lib="cozy.js", fn="renderCozy"):
         for i in range(i0, i1):
             url = pg.evaluate(f"(() => {{ const c = document.getElementById('c'); {fn}(c.getContext('2d'), {i / FPS}, {json.dumps(opts)}); return c.toDataURL('image/jpeg', .92); }})()")
             ff.stdin.write(base64.b64decode(url.split(",", 1)[1]))
+            with _lock: _done[0] += 1
         b.close()
     ff.stdin.close(); ff.wait()
+
+
+def make_video(scene, out, minutes=1.0, weather="rain", workers=None, silent=False, music=False, progress=None, log=print):
+    """Draws one loop of the scene, builds its sound loop, and repeats both to `minutes`. progress(0..1) while drawing."""
+    import os
+    workers = workers or max(1, min(6, os.cpu_count() or 2))
+    if scene in KAWAII:
+        K = KAWAII[scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {"weather": weather}
+        audio = None if silent else kawaii_sound_loop(scene, loop_s, opts)
+    else:
+        audio, loop_s, thunder_at = sound_loop(scene, music)  # the picture loop is made exactly as long as the sound loop
+        opts = {"loop": loop_s, "thunderAt": thunder_at, **SCENES[scene]["opts"]}; lib, fn = "cozy.js", "renderCozy"
+    work = Path(tempfile.mkdtemp(prefix="cozy-"))
+    frames = round(loop_s * FPS); step = -(-frames // workers)
+    parts = [(i, min(frames, i + step), work / f"part{k}.mp4") for k, i in enumerate(range(0, frames, step))]
+    log(f"drawing a {loop_s:.2f}s loop ({frames} frames) with {len(parts)} workers")
+    stop = threading.Event(); _done[0] = 0
+    def watch():  # progress = how much of the loop has been drawn (the long video is just that loop repeated)
+        while not stop.wait(5):
+            if progress:
+                try: progress(_done[0] / frames)
+                except Exception: pass
+    th = threading.Thread(target=watch, daemon=True); th.start()
+    try:
+        with cf.ThreadPoolExecutor(len(parts)) as ex: list(ex.map(lambda p: render_chunk(p[0], p[1], opts, p[2], lib, fn), parts))
+    finally: stop.set()
+    (work / "parts.txt").write_text("".join(f"file '{p[2]}'\n" for p in parts))
+    loop_mp4 = work / "loop.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "parts.txt"), "-c", "copy", str(loop_mp4)], check=True)
+    total = minutes * 60; reps = int(np.ceil(total / loop_s))
+    (work / "loops.txt").write_text(f"file '{loop_mp4}'\n" * reps)
+    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "loops.txt")]
+    if not silent:
+        wav = work / "loop.wav"; sf.write(wav, audio, SR)
+        cmd += ["-stream_loop", "-1", "-i", str(wav), "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k"]
+    cmd += ["-c:v", "copy", "-t", f"{total:.2f}", "-movflags", "+faststart", str(out)]
+    subprocess.run(cmd, check=True)
+    log(f"done: {out} ({total / 60:.1f} min)")
+    return total
 
 
 def main():
@@ -110,29 +154,7 @@ def main():
     ap.add_argument("--workers", type=int, default=4); ap.add_argument("--music", action="store_true", help="add soft calm music under the rain")
     ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm", "clear"], help="outside the window (cat scenes)")
     a = ap.parse_args()
-    if a.scene in KAWAII:
-        K = KAWAII[a.scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {"weather": a.weather}
-        audio = None if a.silent else kawaii_sound_loop(a.scene, loop_s, opts)
-    else:
-        audio, loop_s, thunder_at = sound_loop(a.scene, a.music)  # the picture loop is made exactly as long as the sound loop
-        opts = {"loop": loop_s, "thunderAt": thunder_at, **SCENES[a.scene]["opts"]}; lib, fn = "cozy.js", "renderCozy"
-    work = Path(tempfile.mkdtemp(prefix="cozy-"))
-    frames = round(loop_s * FPS); step = -(-frames // a.workers)
-    parts = [(i, min(frames, i + step), work / f"part{k}.mp4") for k, i in enumerate(range(0, frames, step))]
-    print(f"drawing a {loop_s:.2f}s loop ({frames} frames) with {len(parts)} workers")
-    with cf.ThreadPoolExecutor(len(parts)) as ex: list(ex.map(lambda p: render_chunk(p[0], p[1], opts, p[2], lib, fn), parts))
-    (work / "parts.txt").write_text("".join(f"file '{p[2]}'\n" for p in parts))
-    loop_mp4 = work / "loop.mp4"
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "parts.txt"), "-c", "copy", str(loop_mp4)], check=True)
-    total = a.minutes * 60; reps = int(np.ceil(total / loop_s))
-    (work / "loops.txt").write_text(f"file '{loop_mp4}'\n" * reps)
-    cmd = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "loops.txt")]
-    if not a.silent:
-        wav = work / "loop.wav"; sf.write(wav, audio, SR)
-        cmd += ["-stream_loop", "-1", "-i", str(wav), "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k"]
-    cmd += ["-c:v", "copy", "-t", f"{total:.2f}", "-movflags", "+faststart", a.out]
-    subprocess.run(cmd, check=True)
-    print(f"done: {a.out} ({total / 60:.1f} min)")
+    make_video(a.scene, a.out, a.minutes, a.weather, a.workers, a.silent, a.music)
 
 
 if __name__ == "__main__":

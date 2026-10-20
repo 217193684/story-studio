@@ -85,9 +85,44 @@ def make(job):
     log("done:", url)
 
 
+def make_calm(job):
+    """A calm loop video: draw one loop of the scene, repeat it to the length asked for, upload it."""
+    from cozy_render import make_video
+    cid = job["id"]; mins = int(job["minutes"])
+    def report(pct, note):
+        try: call(f"/api/jobs/calm/{cid}", {"action": "progress", "note": note, "pct": round(pct, 1)}, timeout=30)
+        except Exception as e: log("progress update failed:", e)
+    last = [0.0]
+    def drawing(f):
+        if time.time() - last[0] < 6: return
+        last[0] = time.time(); report(10 + 70 * f, f"Drawing the scene ({int(f * 100)}%)")
+    log(f"== calm video: {job['scene']} / {job['weather']} / {mins} min ({cid})")
+    report(10, "Drawing the scene")
+    work = Path(f"/tmp/calm-{cid}"); work.mkdir(parents=True, exist_ok=True)
+    out = work / f"{job['scene'].replace('_', '-')}-{job['weather']}-{mins}min.mp4"
+    make_video(job["scene"], out, mins, job["weather"], progress=drawing, log=log)
+    report(85, f"Uploading the {mins}-minute video ({out.stat().st_size // 1_000_000} MB)")
+    tag = f"calm-{cid[:8]}-{os.environ.get('GITHUB_RUN_ID', int(time.time()))}"
+    subprocess.run(["gh", "release", "create", tag, str(out), "--repo", REPO, "--title", f"Calm: {job['scene']} {job['weather']} {mins} min", "--notes", f"Calm video {cid}"], check=True)
+    call(f"/api/jobs/calm/{cid}", {"action": "done", "video_url": f"https://github.com/{REPO}/releases/download/{tag}/{out.name}"})
+    log("done:", out.name)
+
+
+def calm_jobs():
+    while time.time() < DEADLINE:
+        job = call("/api/jobs/calm/claim", {})
+        if job.get("idle"): return
+        try: make_calm(job)
+        except Exception as e:
+            traceback.print_exc()
+            try: call(f"/api/jobs/calm/{job['id']}", {"action": "fail", "error": f"The video maker hit a problem: {e}"[:900]})
+            except Exception as e2: log("couldn't report failure:", e2)
+
+
 def main():
     pend = json.loads(urllib.request.urlopen(API + "/api/jobs/pending", timeout=60).read())
     log("waiting on the website:", pend)
+    if pend.get("calm"): calm_jobs()
     if not pend.get("planning") and not pend.get("queued"): return
     while time.time() < DEADLINE:
         advance_planning()
