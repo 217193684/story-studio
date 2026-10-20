@@ -1,4 +1,5 @@
 /** Nature videos: a real moving nature clip (free from Pixabay), looped, with matching real nature sounds and soft music. */
+import SOURCES from "../../engine/nature_sources.json";
 
 // bed = [real recording in engine/sounds, volume]; thunder = rolls of thunder now and then
 export type Sound = { label: string; beds: [string, number][]; thunder?: boolean };
@@ -118,7 +119,13 @@ export function natureYoutube(o: NatureOptions, minutes: number) {
   const sound = SOUND_WORDS[o.sound] || S?.label || "Nature Sounds";
   const withMusic = o.music !== "none" && M ? ` & ${M.label}` : "";
   const title = `${sound}${withMusic} | ${E?.label || "Nature"} ${E?.emoji || ""} | ${len} for Sleep, Study & Relaxation`.replace(/\s+/g, " ").slice(0, 98);
-  const description = `Relax with ${len.toLowerCase()} of ${(S?.label || "nature sounds").toLowerCase()}${withMusic.toLowerCase()} — ${E?.label.toLowerCase() || "nature"} scenery to help you sleep, study, focus, meditate or simply unwind.\n\nPut it on, dim the lights and breathe slowly.\n\nIf this helped you relax, subscribe for new calming nature videos every week, and tell us in the comments which place we should visit next.\n\nVideo by ${o.clip.user} on Pixabay: ${o.clip.page}`;
+  let description = `Relax with ${len.toLowerCase()} of ${(S?.label || "nature sounds").toLowerCase()}${withMusic.toLowerCase()} — ${E?.label.toLowerCase() || "nature"} scenery to help you sleep, study, focus, meditate or simply unwind.\n\nPut it on, dim the lights and breathe slowly.\n\nIf this helped you relax, subscribe for new calming nature videos every week, and tell us in the comments which place we should visit next.\n\nVideo by ${o.clip.user} on Pixabay: ${o.clip.page}`;
+  const used = [...o.beds.map(([b]) => b), ...(o.thunder ? ["thunder"] : [])]
+    .map((b) => (SOURCES as Record<string, { title: string; author: string; licence: string; page: string }>)[b]).filter(Boolean)
+    .filter((c, i, a) => a.findIndex((x) => x.page === c.page) === i);
+  const credits = used.filter((c) => /by/i.test(c.licence))
+    .map((c) => `"${c.title.replace(/\.(ogg|oga|wav|flac|mp3|webm|opus)$/i, "")}" by ${c.author || "unknown"} (${c.licence}) — ${c.page}`);
+  if (credits.length) description += `\n\nNature recordings:\n${credits.join("\n")}`;
   const tags = ["nature sounds", "relaxing", "sleep sounds", "study", "meditation", "calm", "ambient", (S?.label || "").toLowerCase(), (E?.label || "").toLowerCase(), `${len.toLowerCase()}`, "white noise", "relaxation", "deep sleep", "stress relief", ...(o.music !== "none" && M ? [M.label.toLowerCase(), "relaxing music"] : [])].filter(Boolean);
   return { title, description, tags };
 }

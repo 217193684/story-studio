@@ -21,7 +21,7 @@ OUT = ROOT / "public" / "preview"
 
 def envs():
     js = "import('" + str(ROOT / "src/lib/nature.ts") + "').then(m => console.log(JSON.stringify(m.ENVIRONMENTS)))"
-    r = subprocess.run(["node", "--experimental-strip-types", "--no-warnings", "-e", js], check=True, capture_output=True, text=True)
+    r = subprocess.run(["npx", "-y", "tsx", "-e", js], check=True, capture_output=True, text=True, cwd=ROOT)
     return json.loads(r.stdout)
 
 
