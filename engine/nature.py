@@ -20,6 +20,7 @@ STAND_IN = {
     "amb_stream": [("amb_rain", .7)], "amb_waterfall": [("amb_stream", 1), ("amb_rain_heavy", .6)], "amb_forest": [("amb_birds", .8), ("amb_wind", .4)],
     "amb_lake": [("amb_stream", .5), ("amb_night", .3)], "amb_evening": [("amb_night", .6), ("amb_birds", .4)], "amb_fire": [("amb_room", 1)],
 }
+THUNDER = 0.5               # distant thunder: noticeable rolls, never a startling crack
 MUSIC_FILES = {"piano": "music_calm", "lofi": "music_lofi"}
 
 
@@ -63,9 +64,9 @@ def sound_loop(beds, thunder, music, log=print):
     for name, vol in resolve(beds, log):
         b = seamless(load(name)); nat += np.tile(b, m // len(b) + 1)[:m] / rms(b) * vol
     if thunder and (SOUNDS / "thunder.mp3").exists():
-        th = load("thunder"); th = th / (np.abs(th).max() or 1)
+        th = load("thunder"); th = th / rms(th); base = rms(nat)
         for at in (.12, .47, .81):                                              # three distant rolls per loop
-            i = int(at * n); seg = th[: m - i]; nat[i:i + len(seg)] += seg * rms(nat) * 4.5
+            i = int(at * n); seg = th[: m - i]; nat[i:i + len(seg)] += seg * base * THUNDER
     k = np.linspace(0, 1, xf); nat[:xf] = nat[:xf] * np.sqrt(k) + nat[n:n + xf] * np.sqrt(1 - k); nat = nat[:n]
     nat = nat / rms(nat) * .12
     if music != "none":
