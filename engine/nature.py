@@ -86,7 +86,7 @@ def video_loop(clip, out, minutes, log=print):
     """One seamless loop of the clip: [middle part] + [end cross-fading into the start]. Size kept so the long video stays under 2 GB."""
     L = duration(clip); xf = min(2.0, max(.5, L / 5))
     kbps = MAX_BYTES * 8 / (minutes * 60) / 1000 - 180
-    w, h = (1920, 1080) if kbps >= 2600 else (1280, 720)
+    w, h = (1920, 1080) if kbps >= 2400 else (1280, 720)
     rate = int(min(kbps, 7000 if h == 1080 else 4000))
     log(f"clip {L:.1f}s -> loop {L - xf:.1f}s at {w}x{h}, up to {rate} kbps")
     f = (f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={FPS},format=yuv420p,split=3[a][b][c];"
