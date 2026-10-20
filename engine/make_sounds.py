@@ -84,6 +84,8 @@ SOUNDS = {
     "asmr_stir": ("Close-up ASMR: a wooden spoon slowly stirring soup in a pot, soft liquid sounds, no music", 3),
     "asmr_drop": ("Close-up ASMR: chopped vegetable slices sliding off a cutting board and dropping into a pot of soup, soft splash, no music", 1.5),
     "asmr_sprinkle": ("Close-up ASMR: shaking a salt shaker a few times over a pot, soft gentle sprinkle, no music", 1.5),
+    "asmr_pencil": ("Close-up ASMR: a pencil writing slowly on paper in a notebook, soft scratchy strokes, quiet room, no music", 4),
+    "asmr_page": ("Close-up ASMR: gently turning one paper page of a book, soft and crisp, quiet room, no music", 1.5),
 }
 
 

@@ -25,6 +25,8 @@ KAWAII = {  # flat cute ASMR scenes, each with its own timed sounds
     "cat_sleep": {"lib": "sleepy.js", "fn": "renderSleep", "sounds": "sleepSounds", "loop": 40.0},
     "cat_lofi": {"lib": "sleepy.js", "fn": "renderLofi", "sounds": "lofiSounds", "loop": 94.0},
     "farm": {"lib": "sleepy.js", "fn": "renderFarm", "sounds": "farmSounds", "loop": 60.0},
+    "snow_cabin": {"lib": "snow.js", "fn": "renderCabin", "sounds": "cabinSounds", "loop": 60.0},
+    "cat_study": {"lib": "snow.js", "fn": "renderStudy", "sounds": "studySounds", "loop": 60.0},
 }  # flat cute ASMR scenes with timed sounds
 FRAME = SR // FPS  # 1470 samples per frame, so sound and picture loops have exactly the same length
 
@@ -86,7 +88,7 @@ def kawaii_sound_loop(scene, loop_s, opts):
 
 
 def page_html(lib_name="cozy.js"):
-    lib = (HERE / "lib" / lib_name).read_text()
+    lib = (HERE / "lib" / "kitty.js").read_text() + "\n" + (HERE / "lib" / lib_name).read_text()  # the channel cat, shared by every scene
     return f"<html><meta charset='utf-8'><body style='margin:0;background:#000'><canvas id=c width={W} height={H}></canvas><script>{lib}</script></body></html>"
 
 
@@ -152,7 +154,7 @@ def main():
     ap.add_argument("--scene", default="rain_window", choices=list(SCENES) + list(KAWAII)); ap.add_argument("--minutes", type=float, default=1)
     ap.add_argument("--out", default="cozy.mp4"); ap.add_argument("--silent", action="store_true", help="picture only (sounds not made yet)")
     ap.add_argument("--workers", type=int, default=4); ap.add_argument("--music", action="store_true", help="add soft calm music under the rain")
-    ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm", "clear"], help="outside the window (cat scenes)")
+    ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm", "clear", "snow"], help="outside the window (cat scenes)")
     a = ap.parse_args()
     make_video(a.scene, a.out, a.minutes, a.weather, a.workers, a.silent, a.music)
 
