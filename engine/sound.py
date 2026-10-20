@@ -1,4 +1,6 @@
 """Story Studio — original music beds, sound effects and background ambience, all synthesised (no copyrighted audio)."""
+import subprocess
+from pathlib import Path
 import numpy as np
 
 SR = 44100
@@ -14,6 +16,44 @@ def _noise(n, smooth=1):
     x = _rng.randn(n)
     return np.convolve(x, np.ones(smooth) / smooth, "same") if smooth > 1 else x
 def midi(m): return 440 * 2 ** ((m - 69) / 12)
+
+
+# ---------------------------------------------------------------- real recordings (made once with ElevenLabs, see make_sounds.py)
+REAL = Path(__file__).resolve().parent / "sounds"
+_real_cache = {}
+
+
+def _real(name):
+    """A real recording from engine/sounds/<name>.mp3 as mono float at SR, peak-normalised; None if we don't have one."""
+    if name in _real_cache: return _real_cache[name]
+    p = REAL / f"{name}.mp3"; a = None
+    if p.exists():
+        try:
+            raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(p), "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"], check=True, capture_output=True).stdout
+            a = np.frombuffer(raw, np.float32).astype(np.float64)
+            nz = np.where(np.abs(a) > .004)[0]
+            if len(nz): a = a[max(0, nz[0] - 200): nz[-1] + 2000]  # trim silence at both ends
+            a = a / (np.abs(a).max() or 1) * .9
+            f = min(len(a), int(.05 * SR)); a[-f:] *= np.linspace(1, 0, f)  # no click at the end
+        except Exception: a = None
+    _real_cache[name] = a
+    return a
+
+
+def real_count(): return len([p for p in REAL.glob("*.mp3")]) if REAL.exists() else 0
+
+
+def _bed(name, dur, xf=2.0):
+    """Loop a real background recording seamlessly to dur seconds (crossfading its end into its start)."""
+    a = _real(name)
+    if a is None: return None
+    x = int(min(xf, len(a) / SR / 4) * SR); body = a[:-x].copy(); k = np.linspace(0, 1, x)
+    body[:x] = body[:x] * np.sqrt(k) + a[-x:] * np.sqrt(1 - k)
+    n = int(dur * SR); return np.tile(body, n // len(body) + 1)[:n]
+
+
+def sfx_len(name):
+    a = _real(name); return len(a) / SR if a is not None else None
 
 
 # ---------------------------------------------------------------- instruments
@@ -139,6 +179,8 @@ def music_track(segments, total, voice=None):
 
 # ---------------------------------------------------------------- sound effects
 def sfx(name):
+    r = _real(name)
+    if r is not None: return r.copy()
     n = name
     if n == 'knock':
         t = _t(.4); f = 90 * np.exp(-t * 10) + 48
@@ -261,6 +303,21 @@ SFX_NAMES = ['knock', 'door_open', 'creak', 'door_slam', 'footsteps', 'sting', '
 def ambience(where, tod, weather, dur):
     n = int(dur * SR); t = np.arange(n) / SR; a = np.zeros(n)
     outdoor = where in ('street', 'township', 'taxi_rank', 'city', 'construction', 'farm', 'bush', 'forest', 'beach', 'graveyard', 'western_town', 'desert', 'park', 'haunted_house', 'road')
+    nature = where in ('farm', 'bush', 'forest', 'park', 'graveyard', 'haunted_house', 'yard', 'beach', 'desert', 'western_town', 'road')
+    town = where in ('street', 'township', 'taxi_rank', 'city', 'construction')
+    crowd = where in ('bar', 'restaurant', 'club', 'shop', 'taxi_rank', 'wedding', 'church')
+    beds = []  # (real recording, volume)
+    if weather in ('rain', 'lightning'): beds.append(('amb_rain', .9))
+    if weather in ('wind', 'dust') or where in ('desert', 'western_town'): beds.append(('amb_wind', .7))
+    if (nature or town or where == 'yard') and tod == 'night' and weather not in ('rain', 'lightning'): beds.append(('amb_night', .55))
+    if nature and tod != 'night' and weather not in ('rain', 'lightning'): beds.append(('amb_birds', .45))
+    if town and tod != 'night': beds.append(('amb_town', .45))
+    if crowd: beds.append(('amb_crowd', .4))
+    if not (nature or town or crowd): beds.append(('amb_room', .5))  # quiet indoor room tone
+    real = [(b, v) for b, v in beds if _real(b) is not None]
+    if real:
+        for b, v in real: a += _bed(b, dur) * v * .25
+        return a
     # Only soft, low beds — bright hiss reads as paper rustling under the voice.
     if weather == 'rain': a += _noise(n, 120) * .5
     if weather in ('wind', 'dust') or where in ('desert', 'western_town'): a += _noise(n, 400) * .7 * (.5 + .5 * np.sin(2 * np.pi * .2 * t))

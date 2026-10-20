@@ -1,0 +1,37 @@
+name: Make sounds
+# Run by hand: makes Story Studio's real sound library with ElevenLabs (once) and saves it in engine/sounds/.
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Only these sounds (space separated), blank = everything missing"
+        required: false
+        default: ""
+      redo:
+        description: "Replace sounds that already exist"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency: { group: sounds, cancel-in-progress: false }
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Make the sounds
+        env: { ONLY: "${{ inputs.only }}", REDO: "${{ inputs.redo }}" }
+        run: |
+          args=(); [ "$REDO" = "true" ] && args+=(--redo)
+          for n in $ONLY; do [[ "$n" =~ ^[a-z_]+$ ]] && args+=("$n"); done
+          python engine/make_sounds.py "${args[@]}"
+      - name: Save them in the project
+        run: |
+          git config user.name "story-studio-bot"; git config user.email "story-studio-bot@users.noreply.github.com"
+          git add engine/sounds
+          git diff --cached --quiet || (git commit -m "Add real sounds from ElevenLabs" && git push)

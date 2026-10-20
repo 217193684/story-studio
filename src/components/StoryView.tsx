@@ -87,7 +87,7 @@ export default function StoryView({ id }: { id: string }) {
 
       {s.report && s.report.length > 0 && (
         <div className="panel small">
-          <h3>Things the library doesn&apos;t have yet</h3>
+          <h3>Notes from the video maker (voice, sounds, missing library items)</h3>
           <p className="muted">The studio used the closest match for these. Tell Claude in chat if you want them added.</p>
           <ul>{s.report.map((r, i) => <li key={i}>{r}</li>)}</ul>
         </div>

@@ -33,46 +33,63 @@ MALE = ["am_michael", "bm_george", "am_adam", "bm_lewis", "am_eric", "am_onyx", 
 # name lists above stay the same either way; we just map each name to a matching ElevenLabs voice when
 # a key is present.
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY")
-ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+# multilingual_v2 is ElevenLabs' most expressive, natural narration model (turbo is faster but flatter)
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
 _EL_VOICES = None
+_EL_STATUS = {"used": 0, "error": None}  # reported on the website so we can see which voice a video really used
+
+# ElevenLabs' built-in voices that read stories well, best first. Matched by name against the account's voice list.
+EL_PREF = {"female": ["Lily", "Alice", "Charlotte", "Matilda", "Sarah", "Laura", "Jessica", "Aria", "River"],
+           "male": ["George", "Brian", "Daniel", "Bill", "Callum", "Charlie", "Eric", "Chris", "Liam", "Will", "Roger"]}
+# the storyteller for each style
+EL_NARRATOR = {"horror": "Brian", "drama": "George", "kids": "Lily", "comedy": "Charlie", "western": "Bill", "romance": "Charlotte", "action": "Liam"}
 
 
 def _eleven_voice_catalog():
-    """Fetches the account's available voices once per run and splits them by gender."""
+    """Fetches the account's voices once per run: a name->id map, and gender lists in storyteller-preference order."""
     global _EL_VOICES
     if _EL_VOICES is not None: return _EL_VOICES
     req = urllib.request.Request("https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": ELEVEN_KEY})
     try:
         data = json.loads(urllib.request.urlopen(req, timeout=30).read())
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"ElevenLabs voice list failed: {e.code} {e.read()[:300]!r} — check ELEVENLABS_API_KEY") from e
+        raise RuntimeError(f"ElevenLabs voice list failed: {e.code} {e.read()[:300]!r} — check the key has Voices: Read") from e
     voices = data.get("voices", [])
-    fem = [v["voice_id"] for v in voices if (v.get("labels") or {}).get("gender", "").lower() == "female"]
-    male = [v["voice_id"] for v in voices if (v.get("labels") or {}).get("gender", "").lower() == "male"]
-    if not fem: fem = [v["voice_id"] for v in voices[::2]] or ["21m00Tcm4TlvDq8ikWAM"]
-    if not male: male = [v["voice_id"] for v in voices[1::2]] or ["pNInz6obpgDQGcFmaJgB"]
-    _EL_VOICES = {"female": fem, "male": male}
-    return _EL_VOICES
+    by_name = {v.get("name", "").split(" - ")[0].strip().lower(): v["voice_id"] for v in voices}
+    out = {"by_name": by_name, "narrator": None}
+    for gen in ("female", "male"):
+        tagged = [v["voice_id"] for v in voices if (v.get("labels") or {}).get("gender", "").lower() == gen]
+        pref = [by_name[n.lower()] for n in EL_PREF[gen] if n.lower() in by_name]
+        out[gen] = list(dict.fromkeys(pref + tagged)) or [v["voice_id"] for v in voices] or ["JBFqnCBsd6RMkjVDRZzb"]
+    _EL_VOICES = out
+    return out
 
 
 def _eleven_voice_id(name):
     cat = _eleven_voice_catalog()
-    if name in FEMALE: return cat["female"][FEMALE.index(name) % len(cat["female"])]
-    if name in MALE: return cat["male"][MALE.index(name) % len(cat["male"])]
-    return cat["female"][0]
+    if name.startswith("el:"):  # a voice asked for by name (the narrator)
+        vid = cat["by_name"].get(name[3:].lower()) or cat["male"][0]
+        cat["narrator"] = vid; return vid
+    gen = "female" if name in FEMALE else "male"
+    pool = [v for v in cat[gen] if v != cat["narrator"]] or cat[gen]  # characters never share the narrator's voice
+    idx = (FEMALE if gen == "female" else MALE).index(name) if name in FEMALE + MALE else 0
+    return pool[idx % len(pool)]
 
 
 def _eleven_tts(text, voice_id, speed):
     body = json.dumps({"text": text, "model_id": ELEVEN_MODEL,
-                        "voice_settings": {"stability": .45, "similarity_boost": .8, "style": .4, "use_speaker_boost": True, "speed": round(float(speed), 2)}}).encode()
+                        "voice_settings": {"stability": .5, "similarity_boost": .75, "style": .25, "use_speaker_boost": True, "speed": round(float(speed), 2)}}).encode()
     req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}", data=body, method="POST",
                                   headers={"xi-api-key": ELEVEN_KEY, "accept": "audio/mpeg", "content-type": "application/json"})
     try:
-        return urllib.request.urlopen(req, timeout=60).read()
+        return urllib.request.urlopen(req, timeout=90).read()
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"ElevenLabs speech failed: {e.code} {e.read()[:300]!r}") from e
+
+
 ALL_VOICES = FEMALE + MALE + ["af_sky", "af_alloy", "af_aoede", "am_santa"]
 NARRATOR = {"horror": "bm_george", "comedy": "am_puck", "western": "am_onyx", "kids": "af_heart", "drama": "bf_emma", "romance": "af_bella", "action": "am_fenrir"}
+KOKORO_FALLBACK = {"el:" + v: NARRATOR[k] for k, v in EL_NARRATOR.items()}
 STYLE_MOOD = {"horror": "scary", "comedy": "comedy", "western": "western", "kids": "kids", "drama": "calm", "romance": "romantic", "action": "action"}
 POINT_EFFECTS = {"hearts", "stars", "sparkle", "magic", "music", "question", "exclamation", "anger", "sweat", "zzz", "knock", "pow", "boom", "shock", "explosion", "smoke", "fire", "tears", "bubbles"}
 EFFECT_SFX = {"knock": "knock", "pow": "punch", "boom": "explosion", "explosion": "explosion", "lightning": "thunder", "magic": "magic", "sparkle": "magic", "shock": "sting", "money_rain": "cash", "exclamation": "pop", "hearts": "magic", "flash": "whoosh"}
@@ -139,13 +156,13 @@ def tts(text, voice, speed, pitch=1.0):
                 mp3 = _eleven_tts(text, vid, max(.7, min(1.2, bspeed)))
                 tmp = cache / f"{key}.mp3"; tmp.write_bytes(mp3)
                 subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-ar", "24000", "-ac", "1", str(f)], check=True, capture_output=True)
-                tmp.unlink(missing_ok=True)
+                tmp.unlink(missing_ok=True); _EL_STATUS["used"] += 1
             except Exception as e:
                 print(f"ElevenLabs voice failed ({e}); using the free voice for the rest of this video.")
-                _eleven_down = True
+                _eleven_down = True; _EL_STATUS["error"] = str(e)[:300]
                 return tts(text, voice, speed, pitch)  # retry this line on Kokoro, with its own cache key
         else:
-            _kokoro_tts(text, voice, bspeed, f)
+            _kokoro_tts(text, KOKORO_FALLBACK.get(voice, voice) if voice.startswith("el:") else voice, bspeed, f)
     a, sr = sf.read(f)
     if pitch != 1.0:  # resample: raises/lowers pitch (speed was pre-compensated above)
         idx = np.arange(0, len(a), pitch); a = np.interp(idx, np.arange(len(a)), a)
@@ -251,6 +268,10 @@ def compile_plan(plan, out_dir, log=print):
     voices = pick_voices(cast_list, plan)
     nv = (plan.get("narrator") or {}).get("voice") or NARRATOR[style]
     if nv not in ALL_VOICES: nv = NARRATOR[style]
+    if ELEVEN_KEY:
+        nv = "el:" + EL_NARRATOR[style]
+        try: _eleven_voice_id(nv)  # pick the narrator first so no character gets the same voice
+        except Exception as e: log(f"ElevenLabs voices unavailable: {e}")
     captions, talk, voice_clips, sfx_events, music_segs, scenes = [], {}, [], [], [], []
     intro, outro = 3.2, 3.5
     T = 0.0
@@ -372,7 +393,8 @@ def compile_plan(plan, out_dir, log=print):
                 sc["actors"][who]["events"].append(e); cur[who].update({"x": x1, "pose": e["after"], "facing": "right" if x1 > x0 else "left"})
                 if "exit" in b: cur[who]["visible"] = False
                 if cast[who]["kind"] == "human" and p != "sneak":
-                    for k in range(int(d / 1.6) + 1): sfx_events.append((bs + k * 1.6, "footsteps", .1 if p == "walk" else .16))
+                    step = sound.sfx_len("footsteps") or 1.6  # one clip after another, never stacked
+                    for k in range(int(d / step) + 1): sfx_events.append((bs + k * step, "footsteps", .14 if p == "walk" else .2, min(step, d - k * step + .15)))
                 if cast[who]["kind"] == "horse": sfx_events.append((bs, "horse", .5))
                 dur = d if not b.get("no_wait") else .3
             elif "sfx" in b:
@@ -422,6 +444,10 @@ def compile_plan(plan, out_dir, log=print):
     D = {"W": 1280, "H": 720, "fps": FPS, "total": round(total, 3), "intro": intro, "outro": outro, "title": plan.get("title", "A Story"),
          "subtitle": plan.get("subtitle", ""), "endText": plan.get("end", "The End"), "endSub": plan.get("end_sub", "Subscribe for a new story every week"),
          "cast": cast, "scenes": scenes, "captions": captions, "talk": talk, "captionsOn": plan.get("captions", True), "report": sorted(set(rep.items))}
+    if not ELEVEN_KEY: D["report"].insert(0, "Voice: free voice (no ElevenLabs key found)")
+    elif _EL_STATUS["error"]: D["report"].insert(0, f"Voice: ElevenLabs for {_EL_STATUS['used']} lines, then the free voice — ElevenLabs said: {_EL_STATUS['error']}")
+    else: D["report"].insert(0, f"Voice: ElevenLabs ({ELEVEN_MODEL}), {_EL_STATUS['used']} lines")
+    D["report"].insert(1, f"Sound effects: {sound.real_count()} real recordings in the library, the rest made by code")
     # ---- sound
     n = int((total + 1) * SR)
     voice = np.zeros(n, np.float32)
@@ -430,7 +456,11 @@ def compile_plan(plan, out_dir, log=print):
     if pk > 0: voice *= .9 / pk
     music = sound.music_track(music_segs + [(T, total, music_segs[-1][2] if music_segs else "calm")], total + 1, voice) * .55
     fx = np.zeros(n)
-    for at, name, vol in sfx_events: sound.place(fx, sound.sfx(name) * vol, at)
+    for ev_ in sfx_events:
+        at, name, vol = ev_[:3]; clip = sound.sfx(name) * vol
+        if len(ev_) > 3:  # cut to length (e.g. footsteps stop when the walk stops), with a short fade
+            m = max(1, int(ev_[3] * SR)); clip = clip[:m].copy(); f = min(len(clip), int(.08 * SR)); clip[-f:] *= np.linspace(1, 0, f)
+        sound.place(fx, clip, at)
     amb = np.zeros(n)
     for sc in scenes: sound.place(amb, sound.ambience(sc["place"], sc["tod"], sc["weather"], sc["end"] - sc["start"]) * .6, sc["start"])
     mix = voice + music + fx * .5 + amb * .3
