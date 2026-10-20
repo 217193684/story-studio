@@ -87,11 +87,18 @@ export default function CalmStudio() {
 
   return (
     <div style={{ display: "grid", gap: 22 }}>
-      <div><h1>Calm videos</h1><p className="muted" style={{ marginTop: 6 }}>Long relaxing videos for sleep, study and calm: real nature with real nature sounds, or cozy cartoon loops.</p></div>
+      <div>
+        <h1>{tab === "nature" ? "Calming videos" : "Story videos"}</h1>
+        <p className="muted" style={{ marginTop: 6 }}>
+          {tab === "nature"
+            ? "Long relaxing videos for sleep, study and calm: real nature footage with real nature sounds."
+            : "Cozy animated stories with Kitty, looped into long, calming videos."}
+        </p>
+      </div>
       <YouTubeBar yt={yt} reload={loadYt} />
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "nature"} className={tab === "nature" ? "on" : ""} onClick={() => setTab("nature")}>🌿 Nature</button>
-        <button role="tab" aria-selected={tab === "cartoon"} className={tab === "cartoon" ? "on" : ""} onClick={() => setTab("cartoon")}>🐱 Cartoon scenes</button>
+        <button role="tab" aria-selected={tab === "nature"} className={tab === "nature" ? "on" : ""} onClick={() => setTab("nature")}>🌿 Calming videos</button>
+        <button role="tab" aria-selected={tab === "cartoon"} className={tab === "cartoon" ? "on" : ""} onClick={() => setTab("cartoon")}>🐱 Story videos</button>
       </div>
 
       {tab === "nature" ? <NaturePicker onMade={load} /> : <div className="panel" style={{ display: "grid", gap: 18 }}>

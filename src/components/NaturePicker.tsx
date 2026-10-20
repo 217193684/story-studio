@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, type Clip } from "@/lib/nature";
 
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
@@ -76,6 +76,8 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
         </div></div>
       </div>
 
+      {clip && <Preview clip={clip} env={env} sound={sound} music={music} />}
+
       <div className="row">
         <button className="btn" onClick={make} disabled={busy || !clip}>{busy ? "Adding…" : clip ? `Make a ${len(minutes)} nature video` : "Choose a video first"}</button>
         <span className="small muted">Usually ready in 5–15 minutes. Up to 90 min is full HD; 2–3 hours is made in 720p so the file stays under 2 GB.</span>
@@ -97,6 +99,62 @@ function ClipCard({ c, on, pick }: { c: Clip; on: boolean; pick: () => void }) {
         <span className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>{c.tags.split(",")[0]}</span>
         <button className={`btn ${on ? "" : "quiet"}`} style={{ padding: "4px 10px", fontSize: 13 }} onClick={pick}>{on ? "Chosen ✓" : "Use this"}</button>
       </div>
+    </div>
+  );
+}
+
+const PREVIEW_SECS = 15;
+const MUSIC_GAIN: Record<string, number> = { lofi: .375 };   // same balance as the video maker: music sits softly under nature
+
+/** Hear and see your choice before making a long video: the clip loops with the exact nature mix and music you picked. */
+function Preview({ clip, env, sound, music }: { clip: { preview: string }; env: string; sound: string; music: string }) {
+  const [on, setOn] = useState(false); const [left, setLeft] = useState(PREVIEW_SECS);
+  const nat = useRef<HTMLAudioElement>(null), mus = useRef<HTMLAudioElement>(null), vid = useRef<HTMLVideoElement>(null);
+  const audio = useRef<{ ctx: AudioContext; master: GainNode; music: GainNode } | null>(null);
+
+  function setup() {
+    if (audio.current) return audio.current;
+    const ctx = new AudioContext(), master = ctx.createGain(), mg = ctx.createGain();
+    master.connect(ctx.destination); mg.connect(master);
+    ctx.createMediaElementSource(nat.current!).connect(master);
+    ctx.createMediaElementSource(mus.current!).connect(mg);
+    return (audio.current = { ctx, master, music: mg });
+  }
+  function stop() {
+    setOn(false); nat.current?.pause(); mus.current?.pause(); vid.current?.pause();
+  }
+  async function start() {
+    const a = setup(); await a.ctx.resume();
+    a.master.gain.cancelScheduledValues(a.ctx.currentTime); a.master.gain.setValueAtTime(1, a.ctx.currentTime);
+    a.master.gain.setValueAtTime(1, a.ctx.currentTime + PREVIEW_SECS - 2); a.master.gain.linearRampToValueAtTime(0, a.ctx.currentTime + PREVIEW_SECS);
+    for (const el of [nat.current, mus.current, vid.current]) { if (el) { el.currentTime = 0; el.play().catch(() => {}); } }
+    if (music === "none") mus.current?.pause();
+    setLeft(PREVIEW_SECS); setOn(true);
+  }
+  useEffect(() => {   // count down, then stop
+    if (!on) return;
+    if (left <= 0) { stop(); return; }
+    const id = setTimeout(() => setLeft(left - 1), 1000); return () => clearTimeout(id);
+  }, [on, left]);
+  useEffect(() => {   // change sound or music while it plays: switch straight away
+    if (audio.current) audio.current.music.gain.value = MUSIC_GAIN[music] ?? .29;
+    if (!on) return;
+    nat.current?.play().catch(() => {});
+    if (music === "none") mus.current?.pause(); else mus.current?.play().catch(() => {});
+  }, [env, sound, music, on]);
+  useEffect(() => () => { audio.current?.ctx.close(); }, []);
+  useEffect(() => { stop(); }, [clip.preview]);
+
+  return (
+    <div className="panel" style={{ display: "grid", gap: 10, padding: 12 }}>
+      <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
+        <b>Preview your video</b>
+        <button className="btn" onClick={on ? stop : start} style={{ padding: "6px 14px" }}>{on ? `■ Stop (${left}s)` : `▶ Play ${PREVIEW_SECS}-second preview`}</button>
+      </div>
+      <video ref={vid} src={clip.preview} muted loop playsInline style={{ width: "100%", maxWidth: 640, borderRadius: 10, background: "#000", display: on ? "block" : "none" }} />
+      <audio ref={nat} src={`/preview/nature/${env}-${sound}.mp3`} loop preload="auto" />
+      <audio ref={mus} src={music === "none" ? undefined : `/preview/music/${music}.mp3`} loop preload="auto" />
+      <p className="small muted" style={{ margin: 0 }}>Uses a small version of the video so it loads fast on your phone — the real video is full HD and loops smoothly. Change the sound or music while it plays to compare.</p>
     </div>
   );
 }
