@@ -19,7 +19,10 @@ SCENES = {  # scene -> picture options + the real recordings (from make_sounds.p
     "quiet_rain": {"opts": {"rain": "steady", "thunder": False}, "bed": "amb_rain", "thunder": False},
     "storm_window": {"opts": {"rain": "heavy", "thunder": True}, "bed": "amb_rain", "thunder": True},
 }
-KAWAII = {"cat_meal": {"lib": "kawaii.js", "fn": "renderKawaii", "loop": 40.0}}  # flat cute ASMR scenes with timed sounds
+KAWAII = {  # flat cute ASMR scenes, each with its own timed sounds
+    "cat_meal": {"lib": "kawaii.js", "fn": "renderKawaii", "sounds": "kawaiiSounds", "loop": 40.0},
+    "cat_cooking": {"lib": "kitchen.js", "fn": "renderKitchen", "sounds": "kitchenSounds", "loop": 60.0},
+}  # flat cute ASMR scenes with timed sounds
 FRAME = SR // FPS  # 1470 samples per frame, so sound and picture loops have exactly the same length
 
 
@@ -57,20 +60,24 @@ def sound_loop(scene, music):
     return (out / pk * .8).astype(np.float32), loop_s, thunder_at
 
 
-def kawaii_sound_loop(scene, loop_s):
-    """Rain on the window and soft calm music underneath, with the scene's ASMR sounds at their exact moments."""
+def kawaii_sound_loop(scene, loop_s, opts):
+    """The scene's background beds (weather, simmering pot, soft music) with its ASMR sounds at their exact moments."""
     from playwright.sync_api import sync_playwright
+    K = KAWAII[scene]
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page(); pg.set_content(page_html(KAWAII[scene]["lib"]))
-        events = pg.evaluate("kawaiiSounds()")["events"]; b.close()
+        b = p.chromium.launch(); pg = b.new_page(); pg.set_content(page_html(K["lib"]))
+        info = pg.evaluate(f"{K['sounds']}({json.dumps(opts)})"); b.close()
+    beds = info.get("beds") or [["amb_rain", .03], ["music_calm", .05]]
     n = int(round(loop_s * FPS)) * FRAME; xf = int(XF * SR); m = n + xf  # make a little extra, then fold it over the start
     out = np.zeros(m)
-    rain = seamless(load("amb_rain")); out += np.tile(rain, m // len(rain) + 1)[:m] / (np.sqrt((rain ** 2).mean()) + 1e-9) * .03
-    if (SOUNDS / "music_calm.mp3").exists():
-        mu = seamless(load("music_calm")); out += np.tile(mu, m // len(mu) + 1)[:m] / (np.sqrt((mu ** 2).mean()) + 1e-9) * .05
-    for at, name in events:
+    for name, vol in beds:
         if not (SOUNDS / f"{name}.mp3").exists(): print("sound not made yet:", name); continue
-        x = load(name); x = x / (np.abs(x).max() or 1) * .35; i = int(at * SR); out[i:i + len(x)] += x[: m - i]
+        bed = seamless(load(name)); out += np.tile(bed, m // len(bed) + 1)[:m] / (np.sqrt((bed ** 2).mean()) + 1e-9) * vol
+    for ev in info["events"]:
+        at, name = ev[0], ev[1]; vol = ev[2] if len(ev) > 2 else .7
+        if not (SOUNDS / f"{name}.mp3").exists(): print("sound not made yet:", name); continue
+        x = load(name); x = x / (np.abs(x).max() or 1) * .5 * vol; i = int(at * SR)
+        if i < m: out[i:i + len(x)] += x[: m - i]
     k = np.linspace(0, 1, xf); out[:xf] = out[:xf] * np.sqrt(k) + out[n:n + xf] * np.sqrt(1 - k)  # seamless loop point
     out = out[:n]; return (out / (np.abs(out).max() or 1) * .85).astype(np.float32)
 
@@ -98,10 +105,11 @@ def main():
     ap.add_argument("--scene", default="rain_window", choices=list(SCENES) + list(KAWAII)); ap.add_argument("--minutes", type=float, default=1)
     ap.add_argument("--out", default="cozy.mp4"); ap.add_argument("--silent", action="store_true", help="picture only (sounds not made yet)")
     ap.add_argument("--workers", type=int, default=4); ap.add_argument("--music", action="store_true", help="add soft calm music under the rain")
+    ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm"], help="outside the window (cat scenes)")
     a = ap.parse_args()
     if a.scene in KAWAII:
-        K = KAWAII[a.scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {}
-        audio = None if a.silent else kawaii_sound_loop(a.scene, loop_s)
+        K = KAWAII[a.scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {"weather": a.weather}
+        audio = None if a.silent else kawaii_sound_loop(a.scene, loop_s, opts)
     else:
         audio, loop_s, thunder_at = sound_loop(a.scene, a.music)  # the picture loop is made exactly as long as the sound loop
         opts = {"loop": loop_s, "thunderAt": thunder_at, **SCENES[a.scene]["opts"]}; lib, fn = "cozy.js", "renderCozy"
