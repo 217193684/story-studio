@@ -1,0 +1,19 @@
+name: Find nature sounds
+# Run by hand: looks for free (CC0 / public domain / CC BY) nature field recordings on Wikimedia Commons
+# and saves 90-second samples on the "sound-candidates" branch for checking.
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find and sample recordings
+        run: sudo apt-get install -y -qq ffmpeg >/dev/null && python3 engine/find_nature_sounds.py
+      - name: Save them on the sound-candidates branch
+        run: |
+          git config user.name "story-studio-bot"; git config user.email "story-studio-bot@users.noreply.github.com"
+          git checkout --orphan sound-candidates; git rm -rq --cached .
+          git add sound_candidates; git commit -qm "Nature sound candidates from Wikimedia Commons"; git push -f origin sound-candidates
