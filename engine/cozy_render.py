@@ -22,6 +22,9 @@ SCENES = {  # scene -> picture options + the real recordings (from make_sounds.p
 KAWAII = {  # flat cute ASMR scenes, each with its own timed sounds
     "cat_meal": {"lib": "kawaii.js", "fn": "renderKawaii", "sounds": "kawaiiSounds", "loop": 40.0},
     "cat_cooking": {"lib": "kitchen.js", "fn": "renderKitchen", "sounds": "kitchenSounds", "loop": 60.0},
+    "cat_sleep": {"lib": "sleepy.js", "fn": "renderSleep", "sounds": "sleepSounds", "loop": 40.0},
+    "cat_lofi": {"lib": "sleepy.js", "fn": "renderLofi", "sounds": "lofiSounds", "loop": 94.0},
+    "farm": {"lib": "sleepy.js", "fn": "renderFarm", "sounds": "farmSounds", "loop": 60.0},
 }  # flat cute ASMR scenes with timed sounds
 FRAME = SR // FPS  # 1470 samples per frame, so sound and picture loops have exactly the same length
 
@@ -105,7 +108,7 @@ def main():
     ap.add_argument("--scene", default="rain_window", choices=list(SCENES) + list(KAWAII)); ap.add_argument("--minutes", type=float, default=1)
     ap.add_argument("--out", default="cozy.mp4"); ap.add_argument("--silent", action="store_true", help="picture only (sounds not made yet)")
     ap.add_argument("--workers", type=int, default=4); ap.add_argument("--music", action="store_true", help="add soft calm music under the rain")
-    ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm"], help="outside the window (cat scenes)")
+    ap.add_argument("--weather", default="rain", choices=["rain", "wind", "storm", "clear"], help="outside the window (cat scenes)")
     a = ap.parse_args()
     if a.scene in KAWAII:
         K = KAWAII[a.scene]; loop_s = K["loop"]; lib, fn, opts = K["lib"], K["fn"], {"weather": a.weather}
