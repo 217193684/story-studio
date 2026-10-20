@@ -77,6 +77,8 @@ SOUNDS = {
     "asmr_pick": ("Close-up ASMR: chopsticks gently picking up a piece of food from a lunch box, soft wooden tap, quiet, no music", 1),
     "asmr_chew": ("Close-up ASMR: soft gentle chewing of rice and food, a few small bites, quiet and satisfying, no music, no voice", 2.5),
     "asmr_sip": ("Close-up ASMR: a gentle sip of hot tea from a cup, then setting the cup down softly, no music", 2.5),
+    "asmr_purr": ("A cat purring softly and slowly while asleep, close and gentle, continuous, calm, no music", 20),
+    "amb_farm": ("Peaceful farm ambience on a sunny day: distant cows, soft chicken clucks, birdsong, gentle breeze, calm, no music, no voices", 20),
     "asmr_chop": ("Close-up ASMR: a sharp knife chopping a fresh carrot on a wooden cutting board, three crisp chops, quiet kitchen, no music", 1.5),
     "asmr_simmer": ("Close-up ASMR: a pot of soup gently simmering and bubbling on a stove, soft and continuous, quiet kitchen, no music", 20),
     "asmr_stir": ("Close-up ASMR: a wooden spoon slowly stirring soup in a pot, soft liquid sounds, no music", 3),
@@ -101,6 +103,7 @@ MUSIC = {
     "music_action": (f"Action: driving drums and staccato strings, energetic and heroic, {BG}", 60),
     "music_western": (f"Wild west: twangy acoustic guitar, harmonica, slow galloping rhythm, {BG}", 60),
     "music_party": (f"Party: upbeat amapiano-style log drum groove, shakers, warm keys, {BG}", 60),
+    "music_lofi": ("Chill lofi hip hop beat for sleeping and studying: mellow jazzy piano chords, soft dusty drums at 75 BPM, warm bass, gentle vinyl crackle, relaxed and steady, instrumental, no vocals, loopable", 96),
 }
 MUSIC_MODELS = ["music_v2_5", "music_v1"]  # best first; the next is tried if the account can't use one
 
