@@ -2,7 +2,7 @@ import { z } from "zod";
 import { q } from "@/lib/db";
 import { json } from "@/lib/http";
 import { verifyGithubRun } from "@/lib/oidc";
-import { SITE, videoName, whatsapp } from "@/lib/notify";
+import { SITE, videoName, notify } from "@/lib/notify";
 
 const body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("progress"), note: z.string().max(200), pct: z.number().min(0).max(100) }),
@@ -18,11 +18,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (d.action === "progress") await q(`update calm_videos set progress = jsonb_build_object('note', $2::text, 'pct', $3::real), updated_at = now() where id = $1 and status = 'rendering'`, [id, d.note, d.pct]);
   if (d.action === "done") {
     const [r] = await q<Row>(`update calm_videos set status = 'done', video_url = $2, error = null, progress = '{"note":"Done","pct":100}'::jsonb, updated_at = now() where id = $1 returning scene, minutes, options, yt_state`, [id, d.video_url]);
-    if (r) await whatsapp(`✅ Your ${videoName(r)} is ready!${r.yt_state === "queued" ? " Sending it to YouTube now." : ""}\nOpen Story Studio: ${SITE}/calm`);
+    if (r) await notify("✅ Video ready", `Your ${videoName(r)} is ready.${r.yt_state === "queued" ? " Sending it to YouTube now." : ""}`, `${SITE}/calm`);
   }
   if (d.action === "fail") {
     const [r] = await q<Row>(`update calm_videos set status = 'failed', error = $2, updated_at = now() where id = $1 returning scene, minutes, options, yt_state`, [id, d.error]);
-    if (r) await whatsapp(`⚠️ Your ${videoName(r)} couldn't be made: ${d.error.slice(0, 200)}\n${SITE}/calm`);
+    if (r) await notify("⚠️ Video failed", `Your ${videoName(r)} couldn't be made: ${d.error.slice(0, 200)}`, `${SITE}/calm`);
   }
   return json({ ok: true });
 }

@@ -42,11 +42,11 @@ function WhatsAppBar() {
   async function test() {
     setBusy(true); setMsg("");
     const r = await fetch("/api/notify/test", { method: "POST" }); const d = await r.json().catch(() => ({}));
-    setBusy(false); setMsg(r.ok ? "Sent ✓ — check WhatsApp" : d.error || "Couldn't send");
+    setBusy(false); setMsg(r.ok ? "Sent ✓ — check your phone" : d.error || "Couldn't send");
   }
   return (
     <div className="panel row" style={{ justifyContent: "space-between", gap: 10, padding: "12px 16px" }}>
-      <span>💬 <b>WhatsApp alerts</b> <span className="muted small">{ready ? "— on: a message when a video is ready and when it's on YouTube" : "— add WHATSAPP_PHONE and WHATSAPP_APIKEY in Vercel to get a message when videos are ready"}</span></span>
+      <span>🔔 <b>Phone alerts</b> <span className="muted small">{ready ? "— on: an alert when a video is ready and when it's on YouTube" : "— install the free ntfy app and add NTFY_TOPIC in Vercel to get an alert when videos are ready"}</span></span>
       {ready && <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={test} disabled={busy}>{busy ? "Sending…" : "Send test"}</button>}
       {msg && <p className="small" style={{ margin: 0, width: "100%" }}>{msg}</p>}
     </div>
