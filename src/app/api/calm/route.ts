@@ -2,7 +2,7 @@ import { z } from "zod";
 import { q } from "@/lib/db";
 import { json } from "@/lib/http";
 import { CALM_SCENES, LENGTHS } from "@/lib/calm";
-import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, NO_SOUND } from "@/lib/nature";
 
 export const dynamic = "force-dynamic";
 export type CalmRow = { id: string; scene: string; weather: string; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string; options: Record<string, unknown>; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: Record<string, unknown> };
@@ -21,9 +21,10 @@ export async function POST(req: Request) {
   const raw = await req.json().catch(() => null);
   if (raw?.scene === "nature") {   // a real nature clip with nature sounds
     const n = nature.safeParse(raw); if (!n.success) return json({ error: "Pick a nature video, a sound and a length" }, 400);
-    const E = ENVIRONMENTS[n.data.env], S = E?.sounds[n.data.sound];
+    const E = ENVIRONMENTS[n.data.env], none = n.data.sound === NO_SOUND, S = none ? { beds: [] as [string, number][], thunder: false } : E?.sounds[n.data.sound];
     if (!E || !S) return json({ error: "Pick a place and a sound" }, 400);
     if (!MUSIC[n.data.music]) return json({ error: "Pick the music" }, 400);
+    if (none && n.data.music === "none") return json({ error: "Pick a nature sound or some music — with neither, the video would be silent" }, 400);
     if (!(NATURE_LENGTHS as readonly number[]).includes(n.data.minutes)) return json({ error: "Pick one of the lengths" }, 400);
     const options = { env: n.data.env, sound: n.data.sound, music: n.data.music, clip: n.data.clip, beds: S.beds, thunder: !!S.thunder, stamp: n.data.stamp !== false, thumb: n.data.thumb ?? null };
     const [r] = await q<{ id: string }>(`insert into calm_videos (scene, weather, minutes, options, progress) values ('nature', $1, $2, $3::jsonb, '{"note":"Waiting for the video maker","pct":5}'::jsonb) returning id`, [n.data.env, n.data.minutes, JSON.stringify(options)]);

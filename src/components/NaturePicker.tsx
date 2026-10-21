@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, thumbWords, timeLabels, type Clip } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, NO_SOUND, thumbWords, timeLabels, type Clip } from "@/lib/nature";
 import { ThumbPicker, type ThumbStyle } from "./Thumbs";
 
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
@@ -21,7 +21,8 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   useEffect(() => { setSound(Object.keys(ENVIRONMENTS[env].sounds)[0]); setWords(""); setPage(1); }, [env]);
   useEffect(() => { setOwn({}); }, [env, sound]);
   useEffect(() => { setOwn((o) => ({ ...o, badge: undefined })); }, [minutes]);     // new place or sound: fresh thumbnail words
-  const tw = { ...thumbWords(env, sound, minutes), ...own };
+  const tw = { ...thumbWords(env, sound, minutes, music), ...own };
+  const silent = sound === NO_SOUND && music === "none";
   useEffect(() => {
     let live = true; setClips(null); setSearchErr(""); setClip(null);
     fetch(`/api/nature/search?env=${env}&page=${page}${words ? `&q=${encodeURIComponent(words)}` : ""}`).then(async (r) => {
@@ -34,6 +35,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
 
   async function make() {
     if (!clip) { setErr("Tap a video to choose it first"); return; }
+    if (silent) { setErr("Pick a nature sound or some music — with neither, the video would be silent"); return; }
     setBusy(true); setErr("");
     const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene: "nature", env, sound, music, minutes, stamp, clip, thumb: thumbStyle ? { style: thumbStyle, ...tw } : null }) });
     setBusy(false); if (!r.ok) { setErr((await r.json()).error || "Something went wrong"); return; }
@@ -72,7 +74,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
 
       <div className="row" style={{ alignItems: "flex-start", gap: 28 }}>
         <div><h3 style={{ marginBottom: 10 }}>3. Sound</h3><div className="row" style={{ gap: 8 }}>
-          {Object.entries(E.sounds).map(([k, v]) => <button key={k} className={`chip ${k === sound ? "on" : ""}`} onClick={() => setSound(k)} aria-pressed={k === sound}>{v.label}</button>)}
+          {[...Object.entries(E.sounds), [NO_SOUND, { label: "No nature sound" }] as const].map(([k, v]) => <button key={k} className={`chip ${k === sound ? "on" : ""}`} onClick={() => setSound(k)} aria-pressed={k === sound}>{v.label}</button>)}
         </div></div>
         <div><h3 style={{ marginBottom: 10 }}>4. Music</h3><div className="row" style={{ gap: 8 }}>
           {Object.entries(MUSIC).map(([k, v]) => <button key={k} title={v.about} className={`chip ${k === music ? "on" : ""}`} onClick={() => setMusic(k)} aria-pressed={k === music}>{v.label}</button>)}
@@ -93,7 +95,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
       </div>}
 
       <div className="row">
-        <button className="btn" onClick={make} disabled={busy || !clip}>{busy ? "Adding…" : clip ? `Make a ${len(minutes)} nature video` : "Choose a video first"}</button>
+        <button className="btn" onClick={make} disabled={busy || !clip || silent}>{busy ? "Adding…" : !clip ? "Choose a video first" : silent ? "Pick a sound or music" : `Make a ${len(minutes)} nature video`}</button>
         <span className="small muted">Usually ready in 5–15 minutes. Up to 90 min is full HD; 2–3 hours is made in 720p so the file stays under 2 GB.</span>
       </div>
       {err && <p style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
@@ -143,6 +145,7 @@ function Preview({ clip, env, sound, music, stamp }: { clip: { preview: string; 
     a.master.gain.setValueAtTime(1, a.ctx.currentTime + PREVIEW_SECS - 2); a.master.gain.linearRampToValueAtTime(0, a.ctx.currentTime + PREVIEW_SECS);
     for (const el of [nat.current, mus.current, vid.current]) { if (el) { el.currentTime = 0; el.play().catch(() => {}); } }
     if (music === "none") mus.current?.pause();
+    if (sound === "none") nat.current?.pause();
     setLeft(PREVIEW_SECS); setOn(true);
   }
   useEffect(() => {   // count down, then stop
@@ -151,9 +154,9 @@ function Preview({ clip, env, sound, music, stamp }: { clip: { preview: string; 
     const id = setTimeout(() => setLeft(left - 1), 1000); return () => clearTimeout(id);
   }, [on, left]);
   useEffect(() => {   // change sound or music while it plays: switch straight away
-    if (audio.current) audio.current.music.gain.value = MUSIC_GAIN[music] ?? .29;
+    if (audio.current) audio.current.music.gain.value = sound === "none" ? 1 : MUSIC_GAIN[music] ?? .29;   // music only: as loud as a full mix
     if (!on) return;
-    nat.current?.play().catch(() => {});
+    if (sound === "none") nat.current?.pause(); else nat.current?.play().catch(() => {});
     if (music === "none") mus.current?.pause(); else mus.current?.play().catch(() => {});
   }, [env, sound, music, on]);
   useEffect(() => () => { audio.current?.ctx.close(); }, []);
@@ -170,7 +173,7 @@ function Preview({ clip, env, sound, music, stamp }: { clip: { preview: string; 
         {/* the same corner stamp the finished video gets (same picture, same size and place) */}
         {stamp && <img src="/stamp.png" alt="" style={{ position: "absolute", left: "1.69%", bottom: "3%", height: "4.4%", opacity: .85, pointerEvents: "none" }} />}
       </div>
-      <audio ref={nat} src={`/preview/nature/${env}-${sound}.mp3`} loop preload="auto" />
+      <audio ref={nat} src={sound === "none" ? undefined : `/preview/nature/${env}-${sound}.mp3`} loop preload="auto" />
       <audio ref={mus} src={music === "none" ? undefined : `/preview/music/${music}.mp3`} loop preload="auto" />
       <p className="small muted" style={{ margin: 0 }}>Uses a small version of the video so it loads fast on your phone — the real video is full HD and loops smoothly. The stamp is shown exactly where it will be. Change the sound or music while it plays to compare.</p>
     </div>

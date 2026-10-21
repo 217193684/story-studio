@@ -63,7 +63,7 @@ function ChangeThumb({ r, reload }: { r: Row; reload: () => void }) {
   useEffect(() => { if (!step || step.pct >= 100) return; const t0 = Date.now() - secs * 1000; const id = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 500); return () => clearInterval(id); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!step && step.pct < 100]);
   if (!nat) return null;
-  const words = { ...thumbWords(nat.env, nat.sound, r.minutes), ...own };
+  const words = { ...thumbWords(nat.env, nat.sound, r.minutes, nat.music), ...own };
   const busy = !!step && step.pct < 100;
   if (!open) return <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={() => { setOpen(true); setStep(null); setErr(""); }}>{nat.thumb ? "Change thumbnail" : "Add a thumbnail"}</button>;
 
@@ -214,7 +214,7 @@ export default function CalmStudio() {
             return (
               <div key={r.id} className="panel" style={{ display: "grid", gap: 12 }}>
                 <div className="row" style={{ justifyContent: "space-between" }}>
-                  {nat ? <div><b>{ENVIRONMENTS[nat.env]?.emoji} {ENVIRONMENTS[nat.env]?.label}</b> <span className="muted">· {ENVIRONMENTS[nat.env]?.sounds[nat.sound]?.label}{nat.music !== "none" ? ` + ${MUSIC[nat.music]?.label.toLowerCase()}` : ""} · {len(r.minutes)}</span></div>
+                  {nat ? <div><b>{ENVIRONMENTS[nat.env]?.emoji} {ENVIRONMENTS[nat.env]?.label}</b> <span className="muted">· {nat.sound === "none" ? `${MUSIC[nat.music]?.label || "Music"} only` : `${ENVIRONMENTS[nat.env]?.sounds[nat.sound]?.label}${nat.music !== "none" ? ` + ${MUSIC[nat.music]?.label.toLowerCase()}` : ""}`} · {len(r.minutes)}</span></div>
                     : <div><b>{CALM_SCENES[r.scene as CalmScene]?.label || r.scene}</b> <span className="muted">· {weatherLabel(r.scene, r.weather)} · {len(r.minutes)}</span></div>}
                   <span className={`pill ${r.status}`}>{STATUS[r.status] || r.status}</span>
                 </div>
