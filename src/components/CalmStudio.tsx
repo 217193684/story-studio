@@ -3,8 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type Weather } from "@/lib/calm";
 import { ENVIRONMENTS, MUSIC, natureYoutube, type NatureOptions } from "@/lib/nature";
 import NaturePicker from "./NaturePicker";
+import { ThumbCanvas } from "./Thumbs";
 
-type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: { pct?: number; privacy?: string }; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
+type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: { pct?: number; privacy?: string; note?: string }; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
 const STATUS: Record<string, string> = { queued: "Waiting for the video maker", rendering: "Being made", done: "Ready", failed: "Needs attention" };
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
 
@@ -55,7 +56,7 @@ function WhatsAppBar() {
 
 function SendToYouTube({ r, yt, meta, reload }: { r: Row; yt: YT | null; meta: { title: string; description: string; tags: string[] }; reload: () => void }) {
   const [privacy, setPrivacy] = useState("private"); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  if (r.yt_state === "done" && r.yt_video_id) return <a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>;
+  if (r.yt_state === "done" && r.yt_video_id) return <div style={{ display: "grid", gap: 6 }}><a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>{r.yt_meta?.note && <p className="small muted" style={{ margin: 0 }}>{r.yt_meta.note}</p>}</div>;
   if (r.yt_state === "queued") return <p className="small muted" style={{ margin: 0 }}>▶️ Waiting to upload to YouTube…</p>;
   if (r.yt_state === "uploading") return <div><div className="bar" role="progressbar" aria-valuenow={Math.round(r.yt_meta?.pct || 0)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(3, r.yt_meta?.pct || 0)}%` }} /></div><p className="small muted" style={{ margin: "6px 0 0" }}>Uploading to YouTube ({Math.round(r.yt_meta?.pct || 0)}%)</p></div>;
   if (!yt?.connected) return null;
@@ -168,6 +169,7 @@ export default function CalmStudio() {
                   <div className="grid2">
                     <video src={r.video_url} controls preload="none" style={{ width: "100%", borderRadius: 12, background: "#000" }} />
                     <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
+                      {nat?.thumb && nat.clip.thumb && <div><ThumbCanvas src={nat.clip.thumb} spec={nat.thumb} style={{ maxWidth: 260 }} /><p className="small muted" style={{ margin: "4px 0 0" }}>Thumbnail — goes to YouTube with the video</p></div>}
                       <SendToYouTube r={r} yt={yt} meta={ytText} reload={load} />
                       <a className="btn quiet" href={r.video_url}>Download video</a>
                       <div className="row"><Copy text={ytText.title} label="Copy YouTube title" /><Copy text={ytText.description} label="Copy description" /><Copy text={ytText.tags.join(", ")} label="Copy tags" /></div>

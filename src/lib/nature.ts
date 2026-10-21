@@ -125,9 +125,23 @@ export const MUSIC: Record<string, { label: string; about: string }> = {
 export const NATURE_LENGTHS = [10, 30, 60, 90, 120, 180] as const;
 
 export type Clip = { id: number; url: string; page: string; user: string; thumb: string; preview: string; duration: number; width: number; tags: string };
-export type NatureOptions = { env: string; sound: string; music: string; clip: Clip; beds: [string, number][]; thunder: boolean };
+export type NatureOptions = { env: string; sound: string; music: string; clip: Clip; beds: [string, number][]; thunder: boolean; stamp?: boolean; thumb?: { style: "big" | "badge" | "promise" | "clean"; title: string; hook: string; badge: string; sub: string } | null };
 
 const SOUND_WORDS: Record<string, string> = { light: "Rain Sounds", heavy: "Heavy Rain", storm: "Thunderstorm", leaves: "Rain on Leaves" };
+const HOOKS: Record<string, string> = {
+  rain: "Fall Asleep in Minutes", forest: "Breathe In. Let Go.", sunset: "Let the Day Go", lake: "A Quiet Mind", ocean: "Drift Away",
+  waterfall: "Wash the Stress Away", mountains: "Clear Your Mind", snow: "Cozy & Quiet", cabin: "Cozy Night In", meadow: "Slow Summer Days",
+  city: "City Lights, Calm Mind", night: "Sleep Under the Stars",
+};
+const titleCase = (t: string) => t.replace(/\b\w/g, (c) => c.toUpperCase());
+/** Starting words for the thumbnail (you can change them). */
+export function thumbWords(env: string, sound: string, minutes: number) {
+  const S = ENVIRONMENTS[env]?.sounds[sound];
+  const title = titleCase(SOUND_WORDS[sound] && env === "rain" ? SOUND_WORDS[sound] : (S?.label || "Nature Sounds").replace(/\s*\+\s*/g, " & ").replace(/\s*\(.*\)/, ""));
+  const badge = minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60} ${minutes === 60 ? "HOUR" : "HOURS"}` : `${minutes} MIN`;
+  return { title, hook: HOOKS[env] || "Deep Sleep, Instant Calm", badge, sub: "Sleep · Study · Relax" };
+}
+
 export function natureYoutube(o: NatureOptions, minutes: number) {
   const E = ENVIRONMENTS[o.env], S = E?.sounds[o.sound], M = MUSIC[o.music];
   const len = minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60} Hour${minutes >= 120 ? "s" : ""}` : `${minutes} Minutes`;

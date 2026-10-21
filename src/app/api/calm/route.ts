@@ -14,7 +14,8 @@ export async function GET() {
 
 const body = z.object({ scene: z.enum(Object.keys(CALM_SCENES) as [string, ...string[]]), weather: z.string(), minutes: z.number().int(), stamp: z.boolean().optional() });
 const clip = z.object({ id: z.number(), url: z.string().url().startsWith("https://cdn.pixabay.com/"), page: z.string().url(), user: z.string().max(100), thumb: z.string().max(500), preview: z.string().max(500), duration: z.number(), width: z.number(), tags: z.string().max(300) });
-const nature = z.object({ scene: z.literal("nature"), env: z.string(), sound: z.string(), music: z.string(), minutes: z.number().int(), stamp: z.boolean().optional(), clip });
+const thumb = z.object({ style: z.enum(["big", "badge", "promise", "clean"]), title: z.string().max(40), hook: z.string().max(60), badge: z.string().max(20), sub: z.string().max(40) });
+const nature = z.object({ scene: z.literal("nature"), env: z.string(), sound: z.string(), music: z.string(), minutes: z.number().int(), stamp: z.boolean().optional(), thumb: thumb.nullable().optional(), clip });
 
 export async function POST(req: Request) {
   const raw = await req.json().catch(() => null);
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
     if (!E || !S) return json({ error: "Pick a place and a sound" }, 400);
     if (!MUSIC[n.data.music]) return json({ error: "Pick the music" }, 400);
     if (!(NATURE_LENGTHS as readonly number[]).includes(n.data.minutes)) return json({ error: "Pick one of the lengths" }, 400);
-    const options = { env: n.data.env, sound: n.data.sound, music: n.data.music, clip: n.data.clip, beds: S.beds, thunder: !!S.thunder, stamp: n.data.stamp !== false };
+    const options = { env: n.data.env, sound: n.data.sound, music: n.data.music, clip: n.data.clip, beds: S.beds, thunder: !!S.thunder, stamp: n.data.stamp !== false, thumb: n.data.thumb ?? null };
     const [r] = await q<{ id: string }>(`insert into calm_videos (scene, weather, minutes, options, progress) values ('nature', $1, $2, $3::jsonb, '{"note":"Waiting for the video maker","pct":5}'::jsonb) returning id`, [n.data.env, n.data.minutes, JSON.stringify(options)]);
     return json(r);
   }

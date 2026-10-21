@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, type Clip } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, thumbWords, type Clip } from "@/lib/nature";
+import { ThumbPicker, type ThumbStyle } from "./Thumbs";
 
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
 
@@ -11,11 +12,15 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   const [sound, setSound] = useState(Object.keys(E.sounds)[0]);
   const [music, setMusic] = useState("none");
   const [minutes, setMinutes] = useState(90); const [stamp, setStamp] = useState(true);
+  const [thumbStyle, setThumbStyle] = useState<ThumbStyle | null>("big");
+  const [own, setOwn] = useState<{ title?: string; hook?: string }>({});
   const [words, setWords] = useState(""); const [page, setPage] = useState(1);
   const [clips, setClips] = useState<Clip[] | null>(null); const [clip, setClip] = useState<Clip | null>(null);
   const [searchErr, setSearchErr] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
 
   useEffect(() => { setSound(Object.keys(ENVIRONMENTS[env].sounds)[0]); setWords(""); setPage(1); }, [env]);
+  useEffect(() => { setOwn({}); }, [env, sound]);     // new place or sound: fresh thumbnail words
+  const tw = { ...thumbWords(env, sound, minutes), ...own };
   useEffect(() => {
     let live = true; setClips(null); setSearchErr(""); setClip(null);
     fetch(`/api/nature/search?env=${env}&page=${page}${words ? `&q=${encodeURIComponent(words)}` : ""}`).then(async (r) => {
@@ -29,7 +34,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   async function make() {
     if (!clip) { setErr("Tap a video to choose it first"); return; }
     setBusy(true); setErr("");
-    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene: "nature", env, sound, music, minutes, stamp, clip }) });
+    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene: "nature", env, sound, music, minutes, stamp, clip, thumb: thumbStyle ? { style: thumbStyle, ...tw } : null }) });
     setBusy(false); if (!r.ok) { setErr((await r.json()).error || "Something went wrong"); return; }
     setClip(null); onMade();
   }
@@ -80,6 +85,11 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
       </div>
 
       {clip && <Preview clip={clip} env={env} sound={sound} music={music} stamp={stamp} />}
+
+      {clip && clip.thumb && <div className="panel" style={{ display: "grid", gap: 10, padding: 12 }}>
+        <div><b>Pick your thumbnail</b> <span className="small muted">— the picture people tap on YouTube. It goes up with the video.</span></div>
+        <ThumbPicker src={clip.thumb} value={thumbStyle} words={tw} onPick={setThumbStyle} onWords={(w) => setOwn({ ...own, ...w })} />
+      </div>}
 
       <div className="row">
         <button className="btn" onClick={make} disabled={busy || !clip}>{busy ? "Adding…" : clip ? `Make a ${len(minutes)} nature video` : "Choose a video first"}</button>

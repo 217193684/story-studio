@@ -152,7 +152,9 @@ def youtube_upload(job):
             for attempt in range(5):
                 try:
                     r = urllib.request.urlopen(put, timeout=300); body = json.loads(r.read() or b"{}")
-                    report({"action": "done", "video_id": body["id"]}); log("on YouTube:", body["id"]); path.unlink(missing_ok=True); return
+                    path.unlink(missing_ok=True); log("on YouTube:", body["id"])
+                    note = youtube_thumbnail(body["id"], job.get("options") or {}, tok)
+                    report({"action": "done", "video_id": body["id"], **({"note": note} if note else {})}); return
                 except urllib.error.HTTPError as e:
                     if e.code == 308:                                   # piece received, carry on from where YouTube says
                         rng = e.headers.get("Range"); sent = int(rng.split("-")[1]) + 1 if rng else sent; break
@@ -162,6 +164,24 @@ def youtube_upload(job):
                     if attempt < 4: time.sleep(2 ** attempt * 3); continue
                     raise
             if time.time() - last > 10: last = time.time(); report({"action": "progress", "pct": round(100 * sent / size, 1)})
+
+
+def youtube_thumbnail(video_id, opts, tok):
+    """Sends the thumbnail picked in Story Studio. Never fails the upload: returns a short note for the website instead."""
+    spec, clip = opts.get("thumb"), opts.get("clip") or {}
+    if not spec or not clip.get("thumb"): return ""
+    try:
+        from thumbnail import picture_for, render
+        jpg = render(spec, picture_for(clip["thumb"]))
+        req = urllib.request.Request(f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={video_id}&uploadType=media", data=jpg, method="POST",
+                                     headers={"authorization": f"Bearer {tok}", "content-type": "image/jpeg", "content-length": str(len(jpg))})
+        urllib.request.urlopen(req, timeout=120).read(); log("thumbnail set"); return "Thumbnail added"
+    except urllib.error.HTTPError as e:
+        msg = e.read()[:300].decode("utf-8", "replace"); log("thumbnail failed:", e.code, msg)
+        if e.code == 403: return "Thumbnail not added: YouTube needs your channel phone-verified for custom thumbnails (youtube.com/verify)"
+        return f"Thumbnail not added (YouTube said {e.code})"
+    except Exception as e:
+        log("thumbnail failed:", e); return "Thumbnail not added (couldn't draw it)"
 
 
 def youtube_jobs():
