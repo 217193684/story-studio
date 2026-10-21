@@ -6,6 +6,7 @@ The clip is turned into one seamless loop (its end cross-fades into its start), 
 (a few minutes long), and ffmpeg repeats both, so a 3-hour video costs about the same to make as a 3-minute one.
 """
 import argparse, json, subprocess, tempfile, urllib.request
+import stamp as corner_stamp
 from pathlib import Path
 import numpy as np, soundfile as sf
 
@@ -83,7 +84,7 @@ def duration(path):
     return float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)], check=True, capture_output=True, text=True).stdout.strip())
 
 
-def video_loop(clip, out, minutes, log=print):
+def video_loop(clip, out, minutes, log=print, stamp=True):
     """One seamless loop of the clip: [middle part] + [end cross-fading into the start]. Size kept so the long video stays under 2 GB."""
     L = duration(clip); xf = min(2.0, max(.5, L / 5))
     kbps = MAX_BYTES * 8 / (minutes * 60) / 1000 - 180
@@ -93,7 +94,8 @@ def video_loop(clip, out, minutes, log=print):
     f = (f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={FPS},format=yuv420p,split=3[a][b][c];"
          f"[a]trim={xf}:{L - xf},setpts=PTS-STARTPTS[body];[b]trim={L - xf}:{L},setpts=PTS-STARTPTS[tail];[c]trim=0:{xf},setpts=PTS-STARTPTS[head];"
          f"[tail][head]xfade=transition=fade:duration={xf}:offset=0[tr];[body][tr]concat=n=2:v=1:a=0[v]")
-    run(["ffmpeg", "-v", "error", "-y", "-i", str(clip), "-filter_complex", f, "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "21",
+    if stamp: f += corner_stamp.overlay(h)                            # the small "Story Studio" mark in the corner
+    run(["ffmpeg", "-v", "error", "-y", "-i", str(clip), *(["-i", str(corner_stamp.PNG)] if stamp else []), "-filter_complex", f, "-map", "[vs]" if stamp else "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "21",
          "-maxrate", f"{rate}k", "-bufsize", f"{rate * 2}k", "-g", str(FPS * 2), str(out)])
     return duration(out)
 
@@ -113,7 +115,7 @@ def make_nature(opts, out, minutes, progress=lambda pct, note: None, log=print, 
     if not clip_path:
         progress(15, "Downloading the nature video"); download(opts["clip"]["url"], clip)
     progress(30, "Making the video loop seamlessly")
-    loop_mp4 = work / "loop.mp4"; loop_s = video_loop(clip, loop_mp4, minutes, log)
+    loop_mp4 = work / "loop.mp4"; loop_s = video_loop(clip, loop_mp4, minutes, log, stamp=opts.get("stamp", True))
     progress(60, "Mixing the nature sounds and music")
     wav = work / "sound.wav"; sf.write(wav, sound_loop([tuple(b) for b in opts["beds"]], opts.get("thunder"), opts.get("music", "none"), log), SR)
     progress(75, f"Putting together {minutes} minutes")
@@ -128,9 +130,9 @@ def make_nature(opts, out, minutes, progress=lambda pct, note: None, log=print, 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--clip", required=True); ap.add_argument("--beds", nargs="+", default=["amb_rain"]); ap.add_argument("--thunder", action="store_true")
-    ap.add_argument("--music", default="none"); ap.add_argument("--minutes", type=float, default=1); ap.add_argument("--out", default="nature.mp4")
+    ap.add_argument("--music", default="none"); ap.add_argument("--minutes", type=float, default=1); ap.add_argument("--out", default="nature.mp4"); ap.add_argument("--no-stamp", action="store_true")
     a = ap.parse_args()
-    make_nature({"beds": [[b, 1] for b in a.beds], "thunder": a.thunder, "music": a.music}, a.out, a.minutes, clip_path=a.clip)
+    make_nature({"beds": [[b, 1] for b in a.beds], "thunder": a.thunder, "music": a.music, "stamp": not a.no_stamp}, a.out, a.minutes, clip_path=a.clip)
 
 
 if __name__ == "__main__":

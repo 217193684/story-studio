@@ -10,7 +10,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   const E = ENVIRONMENTS[env];
   const [sound, setSound] = useState(Object.keys(E.sounds)[0]);
   const [music, setMusic] = useState("none");
-  const [minutes, setMinutes] = useState(90);
+  const [minutes, setMinutes] = useState(90); const [stamp, setStamp] = useState(true);
   const [words, setWords] = useState(""); const [page, setPage] = useState(1);
   const [clips, setClips] = useState<Clip[] | null>(null); const [clip, setClip] = useState<Clip | null>(null);
   const [searchErr, setSearchErr] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
@@ -29,7 +29,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   async function make() {
     if (!clip) { setErr("Tap a video to choose it first"); return; }
     setBusy(true); setErr("");
-    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene: "nature", env, sound, music, minutes, clip }) });
+    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene: "nature", env, sound, music, minutes, stamp, clip }) });
     setBusy(false); if (!r.ok) { setErr((await r.json()).error || "Something went wrong"); return; }
     setClip(null); onMade();
   }
@@ -74,9 +74,12 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
         <div><h3 style={{ marginBottom: 10 }}>5. Length</h3><div className="row" style={{ gap: 8 }}>
           {NATURE_LENGTHS.map((m) => <button key={m} className={`chip ${m === minutes ? "on" : ""}`} onClick={() => setMinutes(m)} aria-pressed={m === minutes}>{len(m)}</button>)}
         </div></div>
+        <div><h3 style={{ marginBottom: 10 }}>6. Stamp</h3><div className="row" style={{ gap: 8 }}>
+          {[[true, "Story Studio mark"], [false, "No mark"]].map(([v, l]) => <button key={String(v)} className={`chip ${stamp === v ? "on" : ""}`} onClick={() => setStamp(v as boolean)} aria-pressed={stamp === v}>{l as string}</button>)}
+        </div></div>
       </div>
 
-      {clip && <Preview clip={clip} env={env} sound={sound} music={music} />}
+      {clip && <Preview clip={clip} env={env} sound={sound} music={music} stamp={stamp} />}
 
       <div className="row">
         <button className="btn" onClick={make} disabled={busy || !clip}>{busy ? "Adding…" : clip ? `Make a ${len(minutes)} nature video` : "Choose a video first"}</button>
@@ -107,7 +110,7 @@ const PREVIEW_SECS = 15;
 const MUSIC_GAIN: Record<string, number> = { lofi: .375 };   // same balance as the video maker: music sits softly under nature
 
 /** Hear and see your choice before making a long video: the clip loops with the exact nature mix and music you picked. */
-function Preview({ clip, env, sound, music }: { clip: { preview: string }; env: string; sound: string; music: string }) {
+function Preview({ clip, env, sound, music, stamp }: { clip: { preview: string; thumb: string }; env: string; sound: string; music: string; stamp: boolean }) {
   const [on, setOn] = useState(false); const [left, setLeft] = useState(PREVIEW_SECS);
   const nat = useRef<HTMLAudioElement>(null), mus = useRef<HTMLAudioElement>(null), vid = useRef<HTMLVideoElement>(null);
   const audio = useRef<{ ctx: AudioContext; master: GainNode; music: GainNode } | null>(null);
@@ -151,10 +154,14 @@ function Preview({ clip, env, sound, music }: { clip: { preview: string }; env: 
         <b>Preview your video</b>
         <button className="btn" onClick={on ? stop : start} style={{ padding: "6px 14px" }}>{on ? `■ Stop (${left}s)` : `▶ Play ${PREVIEW_SECS}-second preview`}</button>
       </div>
-      <video ref={vid} src={clip.preview} muted loop playsInline style={{ width: "100%", maxWidth: 640, borderRadius: 10, background: "#000", display: on ? "block" : "none" }} />
+      <div style={{ position: "relative", width: "100%", maxWidth: 640, aspectRatio: "16 / 9", borderRadius: 10, overflow: "hidden", background: "#000" }}>
+        <video ref={vid} src={clip.preview} poster={clip.thumb || undefined} muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        {/* the same corner stamp the finished video gets (same picture, same size and place) */}
+        {stamp && <img src="/stamp.png" alt="" style={{ position: "absolute", left: "1.69%", bottom: "3%", height: "4.4%", opacity: .85, pointerEvents: "none" }} />}
+      </div>
       <audio ref={nat} src={`/preview/nature/${env}-${sound}.mp3`} loop preload="auto" />
       <audio ref={mus} src={music === "none" ? undefined : `/preview/music/${music}.mp3`} loop preload="auto" />
-      <p className="small muted" style={{ margin: 0 }}>Uses a small version of the video so it loads fast on your phone — the real video is full HD and loops smoothly. Change the sound or music while it plays to compare.</p>
+      <p className="small muted" style={{ margin: 0 }}>Uses a small version of the video so it loads fast on your phone — the real video is full HD and loops smoothly. The stamp is shown exactly where it will be. Change the sound or music while it plays to compare.</p>
     </div>
   );
 }

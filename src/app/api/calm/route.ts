@@ -12,9 +12,9 @@ export async function GET() {
   return json(rows);
 }
 
-const body = z.object({ scene: z.enum(Object.keys(CALM_SCENES) as [string, ...string[]]), weather: z.string(), minutes: z.number().int() });
+const body = z.object({ scene: z.enum(Object.keys(CALM_SCENES) as [string, ...string[]]), weather: z.string(), minutes: z.number().int(), stamp: z.boolean().optional() });
 const clip = z.object({ id: z.number(), url: z.string().url().startsWith("https://cdn.pixabay.com/"), page: z.string().url(), user: z.string().max(100), thumb: z.string().max(500), preview: z.string().max(500), duration: z.number(), width: z.number(), tags: z.string().max(300) });
-const nature = z.object({ scene: z.literal("nature"), env: z.string(), sound: z.string(), music: z.string(), minutes: z.number().int(), clip });
+const nature = z.object({ scene: z.literal("nature"), env: z.string(), sound: z.string(), music: z.string(), minutes: z.number().int(), stamp: z.boolean().optional(), clip });
 
 export async function POST(req: Request) {
   const raw = await req.json().catch(() => null);
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (!E || !S) return json({ error: "Pick a place and a sound" }, 400);
     if (!MUSIC[n.data.music]) return json({ error: "Pick the music" }, 400);
     if (!(NATURE_LENGTHS as readonly number[]).includes(n.data.minutes)) return json({ error: "Pick one of the lengths" }, 400);
-    const options = { env: n.data.env, sound: n.data.sound, music: n.data.music, clip: n.data.clip, beds: S.beds, thunder: !!S.thunder };
+    const options = { env: n.data.env, sound: n.data.sound, music: n.data.music, clip: n.data.clip, beds: S.beds, thunder: !!S.thunder, stamp: n.data.stamp !== false };
     const [r] = await q<{ id: string }>(`insert into calm_videos (scene, weather, minutes, options, progress) values ('nature', $1, $2, $3::jsonb, '{"note":"Waiting for the video maker","pct":5}'::jsonb) returning id`, [n.data.env, n.data.minutes, JSON.stringify(options)]);
     return json(r);
   }
@@ -32,6 +32,6 @@ export async function POST(req: Request) {
   const S = CALM_SCENES[p.data.scene as keyof typeof CALM_SCENES];
   if (!(S.weathers as readonly string[]).includes(p.data.weather)) return json({ error: "That weather isn't available for this scene" }, 400);
   if (!(LENGTHS as readonly number[]).includes(p.data.minutes)) return json({ error: "Pick one of the lengths" }, 400);
-  const [r] = await q<{ id: string }>(`insert into calm_videos (scene, weather, minutes, progress) values ($1, $2, $3, '{"note":"Waiting for the video maker","pct":5}'::jsonb) returning id`, [p.data.scene, p.data.weather, p.data.minutes]);
+  const [r] = await q<{ id: string }>(`insert into calm_videos (scene, weather, minutes, options, progress) values ($1, $2, $3, $4::jsonb, '{"note":"Waiting for the video maker","pct":5}'::jsonb) returning id`, [p.data.scene, p.data.weather, p.data.minutes, JSON.stringify({ stamp: p.data.stamp !== false })]);
   return json(r);
 }

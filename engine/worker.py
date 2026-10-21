@@ -106,7 +106,7 @@ def make_calm(job):
     else:
         report(10, "Drawing the scene")
         out = work / f"{job['scene'].replace('_', '-')}-{job['weather']}-{mins}min.mp4"
-        make_video(job["scene"], out, mins, job["weather"], progress=drawing, log=log)
+        make_video(job["scene"], out, mins, job["weather"], progress=drawing, log=log, stamp=(job.get("options") or {}).get("stamp", True))
     report(85, f"Uploading the {mins}-minute video ({out.stat().st_size // 1_000_000} MB)")
     tag = f"calm-{cid[:8]}-{os.environ.get('GITHUB_RUN_ID', int(time.time()))}"
     subprocess.run(["gh", "release", "create", tag, str(out), "--repo", REPO, "--title", f"Calm: {job['scene']} {job['weather']} {mins} min", "--notes", f"Calm video {cid}"], check=True)

@@ -80,7 +80,7 @@ export default function CalmStudio() {
   const [tab, setTab] = useState<"nature" | "cartoon">("nature");
   const [scene, setScene] = useState<CalmScene>("cat_sleep");
   const [weather, setWeather] = useState<Weather>("rain");
-  const [minutes, setMinutes] = useState(90);
+  const [minutes, setMinutes] = useState(90); const [stamp, setStamp] = useState(true);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [ask, setAsk] = useState("");
   const S = CALM_SCENES[scene];
@@ -97,7 +97,7 @@ export default function CalmStudio() {
 
   async function make() {
     setBusy(true); setErr("");
-    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene, weather, minutes }) });
+    const r = await fetch("/api/calm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scene, weather, minutes, stamp }) });
     setBusy(false); if (!r.ok) { setErr((await r.json()).error || "Something went wrong"); return; }
     load();
   }
@@ -137,6 +137,9 @@ export default function CalmStudio() {
           </div></div>
           <div><h3 style={{ marginBottom: 10 }}>Length</h3><div className="row" style={{ gap: 8 }}>
             {LENGTHS.map((m) => <button key={m} className={`chip ${m === minutes ? "on" : ""}`} onClick={() => setMinutes(m)} aria-pressed={m === minutes}>{len(m)}</button>)}
+          </div></div>
+          <div><h3 style={{ marginBottom: 10 }}>Stamp</h3><div className="row" style={{ gap: 8 }}>
+            {[[true, "Story Studio mark"], [false, "No mark"]].map(([v, l]) => <button key={String(v)} className={`chip ${stamp === v ? "on" : ""}`} onClick={() => setStamp(v as boolean)} aria-pressed={stamp === v}>{l as string}</button>)}
           </div></div>
         </div>
         <div className="row"><button className="btn" onClick={make} disabled={busy}>{busy ? "Adding…" : `Make a ${len(minutes)} video`}</button>

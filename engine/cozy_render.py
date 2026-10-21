@@ -110,7 +110,7 @@ def render_chunk(i0, i1, opts, path, lib="cozy.js", fn="renderCozy"):
     ff.stdin.close(); ff.wait()
 
 
-def make_video(scene, out, minutes=1.0, weather="rain", workers=None, silent=False, music=False, progress=None, log=print):
+def make_video(scene, out, minutes=1.0, weather="rain", workers=None, silent=False, music=False, progress=None, log=print, stamp=True):
     """Draws one loop of the scene, builds its sound loop, and repeats both to `minutes`. progress(0..1) while drawing."""
     import os
     workers = workers or max(1, min(6, os.cpu_count() or 2))
@@ -137,6 +137,12 @@ def make_video(scene, out, minutes=1.0, weather="rain", workers=None, silent=Fal
     (work / "parts.txt").write_text("".join(f"file '{p[2]}'\n" for p in parts))
     loop_mp4 = work / "loop.mp4"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "parts.txt"), "-c", "copy", str(loop_mp4)], check=True)
+    if stamp:   # the small "Story Studio" mark: added to the one short loop, so it costs almost nothing
+        import stamp as corner_stamp
+        marked = work / "loop-stamped.mp4"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(loop_mp4), "-i", str(corner_stamp.PNG), "-filter_complex", "[0:v]null[v]" + corner_stamp.overlay(H),
+                        "-map", "[vs]", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-g", str(FPS * 4), str(marked)], check=True)
+        loop_mp4 = marked
     total = minutes * 60; reps = int(np.ceil(total / loop_s))
     (work / "loops.txt").write_text(f"file '{loop_mp4}'\n" * reps)
     cmd = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(work / "loops.txt")]
