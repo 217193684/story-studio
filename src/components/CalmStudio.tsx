@@ -35,6 +35,24 @@ function YouTubeBar({ yt, reload }: { yt: YT | null; reload: () => void }) {
   );
 }
 
+function WhatsAppBar() {
+  const [ready, setReady] = useState<boolean | null>(null); const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
+  useEffect(() => { fetch("/api/notify/test", { cache: "no-store" }).then((r) => r.json()).then((d) => setReady(!!d.ready)).catch(() => setReady(false)); }, []);
+  if (ready === null) return null;
+  async function test() {
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/notify/test", { method: "POST" }); const d = await r.json().catch(() => ({}));
+    setBusy(false); setMsg(r.ok ? "Sent ✓ — check WhatsApp" : d.error || "Couldn't send");
+  }
+  return (
+    <div className="panel row" style={{ justifyContent: "space-between", gap: 10, padding: "12px 16px" }}>
+      <span>💬 <b>WhatsApp alerts</b> <span className="muted small">{ready ? "— on: a message when a video is ready and when it's on YouTube" : "— add WHATSAPP_PHONE and WHATSAPP_APIKEY in Vercel to get a message when videos are ready"}</span></span>
+      {ready && <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={test} disabled={busy}>{busy ? "Sending…" : "Send test"}</button>}
+      {msg && <p className="small" style={{ margin: 0, width: "100%" }}>{msg}</p>}
+    </div>
+  );
+}
+
 function SendToYouTube({ r, yt, meta, reload }: { r: Row; yt: YT | null; meta: { title: string; description: string; tags: string[] }; reload: () => void }) {
   const [privacy, setPrivacy] = useState("private"); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   if (r.yt_state === "done" && r.yt_video_id) return <a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>;
@@ -96,6 +114,7 @@ export default function CalmStudio() {
         </p>
       </div>
       <YouTubeBar yt={yt} reload={loadYt} />
+      <WhatsAppBar />
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "nature"} className={tab === "nature" ? "on" : ""} onClick={() => setTab("nature")}>🌿 Calming videos</button>
         <button role="tab" aria-selected={tab === "cartoon"} className={tab === "cartoon" ? "on" : ""} onClick={() => setTab("cartoon")}>🐱 Story videos</button>
