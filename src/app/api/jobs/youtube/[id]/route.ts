@@ -10,6 +10,7 @@ const body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("progress"), pct: z.number().min(0).max(100) }),
   z.object({ action: z.literal("done"), video_id: z.string().regex(/^[\w-]{6,20}$/), note: z.string().max(300).optional() }),
   z.object({ action: z.literal("fail"), error: z.string().max(900) }),
+  z.object({ action: z.literal("thumb_done"), note: z.string().max(300) }),
 ]);
 /** Upload progress / result from the video maker. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +21,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (d.action === "done") {
     const [r] = await q<Row>(`update calm_videos set yt_state = 'done', yt_video_id = $2, yt_error = null, yt_meta = yt_meta || jsonb_build_object('note', $3::text), updated_at = now() where id = $1 returning scene, minutes, options, yt_meta`, [id, d.video_id, d.note ?? ""]);
     if (r) await notify("▶️ On YouTube", `Your ${videoName(r)} is on YouTube${r.yt_meta?.privacy ? ` (${r.yt_meta.privacy})` : ""}${d.note ? `. ${d.note}` : ""}. Tap to open it in YouTube Studio.`, `https://studio.youtube.com/video/${d.video_id}/edit`);
+  }
+  if (d.action === "thumb_done") {
+    const [r] = await q<Row & { yt_video_id: string }>(`update calm_videos set yt_state = 'done', yt_meta = yt_meta || jsonb_build_object('note', $2::text), updated_at = now() where id = $1 returning scene, minutes, options, yt_meta, yt_video_id`, [id, d.note]);
+    if (r) await notify(d.note === "Thumbnail added" ? "🖼️ Thumbnail updated" : "⚠️ Thumbnail not changed", `Your ${videoName(r)}: ${d.note === "Thumbnail added" ? "the new thumbnail is on YouTube" : d.note}.`, `https://studio.youtube.com/video/${r.yt_video_id}/edit`);
   }
   if (d.action === "fail") {
     const [r] = await q<Row>(`update calm_videos set yt_state = 'failed', yt_error = $2, updated_at = now() where id = $1 returning scene, minutes, options, yt_meta`, [id, d.error]);

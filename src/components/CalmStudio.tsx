@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type Weather } from "@/lib/calm";
-import { ENVIRONMENTS, MUSIC, natureYoutube, type NatureOptions } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, natureYoutube, thumbWords, type NatureOptions } from "@/lib/nature";
 import NaturePicker from "./NaturePicker";
-import { ThumbCanvas } from "./Thumbs";
+import { ThumbCanvas, ThumbPicker, type ThumbStyle } from "./Thumbs";
 
 type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: { pct?: number; privacy?: string; note?: string }; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
 const STATUS: Record<string, string> = { queued: "Waiting for the video maker", rendering: "Being made", done: "Ready", failed: "Needs attention" };
@@ -54,9 +54,37 @@ function WhatsAppBar() {
   );
 }
 
+/** Pick a thumbnail for a video that is already on YouTube and send it there. */
+function ChangeThumb({ r, reload }: { r: Row; reload: () => void }) {
+  const nat = r.scene === "nature" && r.options?.clip?.thumb ? r.options : null;
+  const [open, setOpen] = useState(false); const [style, setStyle] = useState<ThumbStyle | null>(nat?.thumb?.style || "big");
+  const [own, setOwn] = useState<{ title?: string; hook?: string }>(nat?.thumb ? { title: nat.thumb.title, hook: nat.thumb.hook } : {});
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  if (!nat) return null;
+  const words = { ...thumbWords(nat.env, nat.sound, r.minutes), ...own };
+  if (!open) return <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={() => setOpen(true)}>{nat.thumb ? "Change thumbnail" : "Add a thumbnail"}</button>;
+  async function send() {
+    if (!style) { setOpen(false); return; }
+    setBusy(true); setErr("");
+    const res = await fetch(`/api/calm/${r.id}/thumb`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ style, ...words }) });
+    setBusy(false); if (!res.ok) { setErr((await res.json()).error || "Couldn't send"); return; } setOpen(false); reload();
+  }
+  return (
+    <div className="panel" style={{ display: "grid", gap: 10, padding: 10 }}>
+      <ThumbPicker src={nat.clip.thumb} value={style} words={words} onPick={setStyle} onWords={(w) => setOwn({ ...own, ...w })} />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn" onClick={send} disabled={busy || !style}>{busy ? "Sending…" : "Put this thumbnail on YouTube"}</button>
+        <button className="btn quiet" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+      {err && <p className="small" style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
+    </div>
+  );
+}
+
 function SendToYouTube({ r, yt, meta, reload }: { r: Row; yt: YT | null; meta: { title: string; description: string; tags: string[] }; reload: () => void }) {
   const [privacy, setPrivacy] = useState("private"); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  if (r.yt_state === "done" && r.yt_video_id) return <div style={{ display: "grid", gap: 6 }}><a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>{r.yt_meta?.note && <p className="small muted" style={{ margin: 0 }}>{r.yt_meta.note}</p>}</div>;
+  if (r.yt_state === "thumb" || r.yt_state === "thumbing") return <p className="small muted" style={{ margin: 0 }}>🖼️ Putting the new thumbnail on YouTube…</p>;
+  if (r.yt_state === "done" && r.yt_video_id) return <div style={{ display: "grid", gap: 6 }}><a className="btn" href={`https://studio.youtube.com/video/${r.yt_video_id}/edit`} target="_blank" rel="noreferrer">✓ On YouTube — open in Studio</a>{r.yt_meta?.note && <p className="small muted" style={{ margin: 0 }}>{r.yt_meta.note}</p>}<ChangeThumb r={r} reload={reload} /></div>;
   if (r.yt_state === "queued") return <p className="small muted" style={{ margin: 0 }}>▶️ Waiting to upload to YouTube…</p>;
   if (r.yt_state === "uploading") return <div><div className="bar" role="progressbar" aria-valuenow={Math.round(r.yt_meta?.pct || 0)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(3, r.yt_meta?.pct || 0)}%` }} /></div><p className="small muted" style={{ margin: "6px 0 0" }}>Uploading to YouTube ({Math.round(r.yt_meta?.pct || 0)}%)</p></div>;
   if (!yt?.connected) return null;
@@ -91,7 +119,7 @@ export default function CalmStudio() {
   const loadYt = useCallback(async () => { const r = await fetch("/api/youtube/status", { cache: "no-store" }); if (r.ok) setYt(await r.json()); }, []);
   useEffect(() => { load(); loadYt(); }, [load, loadYt]);
   useEffect(() => {   // keep the bars moving while anything is being made
-    if (!rows?.some((r) => r.status === "queued" || r.status === "rendering" || r.yt_state === "queued" || r.yt_state === "uploading")) return;
+    if (!rows?.some((r) => r.status === "queued" || r.status === "rendering" || r.yt_state === "queued" || r.yt_state === "uploading" || r.yt_state === "thumb" || r.yt_state === "thumbing")) return;
     const id = setTimeout(load, 6000); return () => clearTimeout(id);
   }, [rows, load]);
   useEffect(() => { if (!(S.weathers as readonly string[]).includes(weather)) setWeather(S.weathers[0] as Weather); }, [scene, S.weathers, weather]);

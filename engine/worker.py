@@ -188,7 +188,11 @@ def youtube_jobs():
     while time.time() < DEADLINE:
         job = call("/api/jobs/youtube/claim", {})
         if job.get("idle"): return
-        try: youtube_upload(job)
+        try:
+            if job.get("yt_state") == "thumbing":   # already on YouTube: only put the new thumbnail on it
+                note = youtube_thumbnail(job["yt_video_id"], job.get("options") or {}, job["access_token"])
+                call(f"/api/jobs/youtube/{job['id']}", {"action": "thumb_done", "note": note or "Thumbnail not added (no design picked)"})
+            else: youtube_upload(job)
         except Exception as e:
             traceback.print_exc()
             try: call(f"/api/jobs/youtube/{job['id']}", {"action": "fail", "error": f"YouTube upload failed: {e}"[:900]})
