@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type Weather } from "@/lib/calm";
-import { ENVIRONMENTS, MUSIC, natureYoutube, thumbWords, type NatureOptions } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, natureYoutube, thumbWords, timeLabels, type NatureOptions } from "@/lib/nature";
 import NaturePicker from "./NaturePicker";
 import { ThumbCanvas, ThumbPicker, thumbJpeg, type ThumbStyle } from "./Thumbs";
 
@@ -58,7 +58,7 @@ function WhatsAppBar() {
 function ChangeThumb({ r, reload }: { r: Row; reload: () => void }) {
   const nat = r.scene === "nature" && r.options?.clip?.thumb ? r.options : null;
   const [open, setOpen] = useState(false); const [style, setStyle] = useState<ThumbStyle | null>(nat?.thumb?.style || "big");
-  const [own, setOwn] = useState<{ title?: string; hook?: string }>(nat?.thumb ? { title: nat.thumb.title, hook: nat.thumb.hook } : {});
+  const [own, setOwn] = useState<{ title?: string; hook?: string; badge?: string }>(nat?.thumb ? { title: nat.thumb.title, hook: nat.thumb.hook, badge: nat.thumb.badge } : {});
   const [step, setStep] = useState<{ pct: number; note: string; wait?: boolean } | null>(null); const [err, setErr] = useState(""); const [secs, setSecs] = useState(0);
   useEffect(() => { if (!step || step.pct >= 100) return; const t0 = Date.now() - secs * 1000; const id = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 500); return () => clearInterval(id); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!step && step.pct < 100]);
@@ -96,7 +96,7 @@ function ChangeThumb({ r, reload }: { r: Row; reload: () => void }) {
           <h3 style={{ margin: 0 }}>Choose your thumbnail</h3>
           <button className="btn quiet" onClick={() => setOpen(false)} disabled={busy}>Close</button>
         </div>
-        <ThumbPicker src={nat.clip.thumb} value={style} words={words} onPick={setStyle} onWords={(w) => setOwn({ ...own, ...w })} />
+        <ThumbPicker src={nat.clip.thumb} value={style} words={words} times={timeLabels(r.minutes)} onPick={setStyle} onWords={(w) => setOwn({ ...own, ...w })} />
         {step && <div>
           <div className={`bar ${step.wait ? "wait" : ""} ${step.pct >= 100 ? "full" : ""}`} role="progressbar" aria-valuenow={Math.round(step.pct)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(3, step.pct)}%` }} /></div>
           <p className="small muted" style={{ margin: "6px 0 0" }}>{step.note} · {Math.round(step.pct)}% · {secs}s</p>

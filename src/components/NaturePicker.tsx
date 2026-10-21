@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, thumbWords, type Clip } from "@/lib/nature";
+import { ENVIRONMENTS, MUSIC, NATURE_LENGTHS, thumbWords, timeLabels, type Clip } from "@/lib/nature";
 import { ThumbPicker, type ThumbStyle } from "./Thumbs";
 
 const len = (m: number) => (m >= 60 && m % 60 === 0 ? `${m / 60} hour${m >= 120 ? "s" : ""}` : `${m} min`);
@@ -13,13 +13,14 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
   const [music, setMusic] = useState("none");
   const [minutes, setMinutes] = useState(90); const [stamp, setStamp] = useState(true);
   const [thumbStyle, setThumbStyle] = useState<ThumbStyle | null>("big");
-  const [own, setOwn] = useState<{ title?: string; hook?: string }>({});
+  const [own, setOwn] = useState<{ title?: string; hook?: string; badge?: string }>({});
   const [words, setWords] = useState(""); const [page, setPage] = useState(1);
   const [clips, setClips] = useState<Clip[] | null>(null); const [clip, setClip] = useState<Clip | null>(null);
   const [searchErr, setSearchErr] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
 
   useEffect(() => { setSound(Object.keys(ENVIRONMENTS[env].sounds)[0]); setWords(""); setPage(1); }, [env]);
-  useEffect(() => { setOwn({}); }, [env, sound]);     // new place or sound: fresh thumbnail words
+  useEffect(() => { setOwn({}); }, [env, sound]);
+  useEffect(() => { setOwn((o) => ({ ...o, badge: undefined })); }, [minutes]);     // new place or sound: fresh thumbnail words
   const tw = { ...thumbWords(env, sound, minutes), ...own };
   useEffect(() => {
     let live = true; setClips(null); setSearchErr(""); setClip(null);
@@ -88,7 +89,7 @@ export default function NaturePicker({ onMade }: { onMade: () => void }) {
 
       {clip && clip.thumb && <div className="panel" style={{ display: "grid", gap: 10, padding: 12 }}>
         <div><b>Pick your thumbnail</b> <span className="small muted">— the picture people tap on YouTube. It goes up with the video.</span></div>
-        <ThumbPicker src={clip.thumb} value={thumbStyle} words={tw} onPick={setThumbStyle} onWords={(w) => setOwn({ ...own, ...w })} />
+        <ThumbPicker src={clip.thumb} value={thumbStyle} words={tw} times={timeLabels(minutes)} onPick={setThumbStyle} onWords={(w) => setOwn({ ...own, ...w })} />
       </div>}
 
       <div className="row">

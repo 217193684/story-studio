@@ -134,11 +134,18 @@ const HOOKS: Record<string, string> = {
   city: "City Lights, Calm Mind", night: "Sleep Under the Stars",
 };
 const titleCase = (t: string) => t.replace(/\b\w/g, (c) => c.toUpperCase());
+/** Ways to write the video's real length on the thumbnail ("" = leave the time off). */
+export function timeLabels(minutes: number) {
+  const h = minutes / 60, hours = h === 1 ? "1 HOUR" : `${Number.isInteger(h) || h * 2 === Math.round(h * 2) ? h : h.toFixed(1)} HOURS`;
+  const list = minutes < 60 ? [`${minutes} MIN`, `${minutes} MINUTES`] : [`${minutes} MIN`, hours, `${minutes} MINUTES`];
+  if (minutes >= 60 && Number.isInteger(h)) list.unshift(list.splice(1, 1)[0]);   // whole hours: "3 HOURS" first
+  return [...list, ""];
+}
 /** Starting words for the thumbnail (you can change them). */
 export function thumbWords(env: string, sound: string, minutes: number) {
   const S = ENVIRONMENTS[env]?.sounds[sound];
   const title = titleCase(SOUND_WORDS[sound] && env === "rain" ? SOUND_WORDS[sound] : (S?.label || "Nature Sounds").replace(/\s*\+\s*/g, " & ").replace(/\s*\(.*\)/, ""));
-  const badge = minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60} ${minutes === 60 ? "HOUR" : "HOURS"}` : `${minutes} MIN`;
+  const badge = timeLabels(minutes)[0];
   return { title, hook: HOOKS[env] || "Deep Sleep, Instant Calm", badge, sub: "Sleep · Study · Relax" };
 }
 

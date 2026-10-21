@@ -52,12 +52,22 @@ export function ThumbCanvas({ src, spec, style }: { src: string; spec: ThumbSpec
 }
 
 /** Pick the thumbnail (or none) and change its words. */
-export function ThumbPicker({ src, value, words, onPick, onWords }: {
-  src: string; value: ThumbStyle | null; words: Omit<ThumbSpec, "style">;
-  onPick: (s: ThumbStyle | null) => void; onWords: (w: Partial<Pick<ThumbSpec, "title" | "hook">>) => void;
+export function ThumbPicker({ src, value, words, times, onPick, onWords }: {
+  src: string; value: ThumbStyle | null; words: Omit<ThumbSpec, "style">; times?: string[];
+  onPick: (s: ThumbStyle | null) => void; onWords: (w: Partial<Pick<ThumbSpec, "title" | "hook" | "badge">>) => void;
 }) {
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      <div className="row" style={{ gap: 10, alignItems: "flex-end" }}>
+        <label style={{ flex: 1, minWidth: 160, margin: 0 }}><span className="small">Big words</span>
+          <input value={words.title} maxLength={40} onChange={(e) => onWords({ title: e.target.value })} /></label>
+        <label style={{ flex: 1, minWidth: 160, margin: 0 }}><span className="small">Promise line (for “Sleep promise”)</span>
+          <input value={words.hook} maxLength={60} onChange={(e) => onWords({ hook: e.target.value })} /></label>
+      </div>
+      {times && times.length > 1 && <div className="row" style={{ gap: 8 }}>
+        <span className="small" style={{ fontWeight: 700 }}>Time on the thumbnail:</span>
+        {times.map((t) => <button key={t || "none"} className={`chip ${words.badge === t ? "on" : ""}`} onClick={() => onWords({ badge: t })} aria-pressed={words.badge === t}>{t || "No time"}</button>)}
+      </div>}
       <div className="thumb-grid">
         {STYLE_KEYS.map((k) => (
           <button key={k} className={`thumb-pick ${value === k ? "on" : ""}`} onClick={() => onPick(k)} aria-pressed={value === k}>
@@ -66,13 +76,7 @@ export function ThumbPicker({ src, value, words, onPick, onWords }: {
           </button>
         ))}
       </div>
-      <div className="row" style={{ gap: 10, alignItems: "flex-end" }}>
-        <label style={{ flex: 1, minWidth: 160, margin: 0 }}><span className="small">Big words</span>
-          <input value={words.title} maxLength={40} onChange={(e) => onWords({ title: e.target.value })} /></label>
-        <label style={{ flex: 1, minWidth: 160, margin: 0 }}><span className="small">Promise line (for “Sleep promise”)</span>
-          <input value={words.hook} maxLength={60} onChange={(e) => onWords({ hook: e.target.value })} /></label>
-        <button className={`chip ${value === null ? "on" : ""}`} onClick={() => onPick(null)} aria-pressed={value === null}>No thumbnail</button>
-      </div>
+      <div><button className={`chip ${value === null ? "on" : ""}`} onClick={() => onPick(null)} aria-pressed={value === null}>No thumbnail</button></div>
     </div>
   );
 }
