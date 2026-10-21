@@ -78,7 +78,9 @@ video{width:100%;border-radius:var(--r-lg);background:#000;display:block}
 .clip-len { position: absolute; right: 6px; bottom: 6px; font: 700 12px var(--body); font-style: normal; background: rgba(0,0,0,.6); padding: 2px 6px; border-radius: 6px; }
 @media (max-width: 520px) { .clip-grid { grid-template-columns: 1fr 1fr; gap: 8px; } }
 
-.thumb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.thumb-pick{border:2px solid var(--line);background:#fbfcfe;border-radius:14px;padding:6px;cursor:pointer;display:grid;gap:6px;font:700 14px var(--body);color:var(--ink);text-align:center}
+.thumb-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:640px){.thumb-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.thumb-pick{border:3px solid var(--line);background:#fbfcfe;border-radius:16px;padding:8px;cursor:pointer;display:grid;gap:8px;font:700 16px var(--body);color:var(--ink);text-align:center}
 .thumb-pick.on{border-color:var(--sun);box-shadow:0 0 0 3px #fde9a6}
-@media (min-width:900px){.thumb-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.sheet{position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:50;overflow:auto;padding:16px}
+.sheet>div{max-width:1100px;margin:0 auto;background:var(--card);border-radius:var(--r-lg);padding:18px;display:grid;gap:14px}

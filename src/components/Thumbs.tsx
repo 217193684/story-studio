@@ -21,9 +21,21 @@ function lib(): Promise<Lib> {
   return libPromise;
 }
 const pictures = new Map<string, Promise<HTMLImageElement | null>>();
+// clip pictures come through our own site, so a drawn thumbnail can be saved as an image and sent to YouTube
+const viaSite = (src: string) => (src.startsWith("https://cdn.pixabay.com/") ? `/api/img?u=${encodeURIComponent(src)}` : src);
 function picture(src: string) {
-  if (!pictures.has(src)) pictures.set(src, new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; }));
+  if (!pictures.has(src)) pictures.set(src, new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = viaSite(src); }));
   return pictures.get(src)!;
+}
+
+/** The finished 1280x720 thumbnail as a JPEG, exactly as drawn in the picker. Prefers the big version of the clip picture. */
+export async function thumbJpeg(src: string, spec: ThumbSpec): Promise<Blob> {
+  const L = await lib();
+  const big = src.replace("_medium.jpg", "_large.jpg");
+  const img = (big !== src ? await picture(big) : null) || await picture(src);
+  const c = document.createElement("canvas"); c.width = 1280; c.height = 720;
+  L.draw(c.getContext("2d")!, img, spec);
+  return new Promise((ok, bad) => c.toBlob((b) => (b ? ok(b) : bad(new Error("Couldn't make the picture"))), "image/jpeg", 0.9));
 }
 
 /** One thumbnail, drawn exactly as YouTube will get it. */

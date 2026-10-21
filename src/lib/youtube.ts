@@ -63,3 +63,16 @@ export async function uploadToken() {
   const t = await google("https://oauth2.googleapis.com/token", { refresh_token: await open(r.token), client_id: process.env.YOUTUBE_CLIENT_ID!, client_secret: process.env.YOUTUBE_CLIENT_SECRET!, grant_type: "refresh_token" });
   return t.access_token as string;
 }
+
+/** Put a thumbnail (JPEG/PNG, under 2 MB) on a video. Returns a short note for the page. */
+export async function setThumbnail(videoId: string, image: ArrayBuffer, type: string) {
+  const tok = await uploadToken();
+  const r = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${encodeURIComponent(videoId)}&uploadType=media`, {
+    method: "POST", headers: { authorization: `Bearer ${tok}`, "content-type": type }, body: image,
+  });
+  if (r.ok) return { ok: true as const };
+  const d = await r.json().catch(() => ({}));
+  const why = d?.error?.message || `YouTube said ${r.status}`;
+  if (r.status === 403) return { ok: false as const, error: `YouTube didn't allow it: ${why}. Custom thumbnails need a phone-verified channel (youtube.com/verify).` };
+  return { ok: false as const, error: why };
+}

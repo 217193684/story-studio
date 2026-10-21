@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CALM_SCENES, LENGTHS, weatherLabel, youtubeFor, type CalmScene, type Weather } from "@/lib/calm";
 import { ENVIRONMENTS, MUSIC, natureYoutube, thumbWords, type NatureOptions } from "@/lib/nature";
 import NaturePicker from "./NaturePicker";
-import { ThumbCanvas, ThumbPicker, type ThumbStyle } from "./Thumbs";
+import { ThumbCanvas, ThumbPicker, thumbJpeg, type ThumbStyle } from "./Thumbs";
 
 type Row = { id: string; scene: CalmScene | "nature"; weather: Weather; options?: NatureOptions; yt_state: string | null; yt_video_id: string | null; yt_error: string | null; yt_meta: { pct?: number; privacy?: string; note?: string }; minutes: number; status: string; progress: { note?: string; pct?: number }; video_url: string | null; error: string | null; created_at: string };
 const STATUS: Record<string, string> = { queued: "Waiting for the video maker", rendering: "Being made", done: "Ready", failed: "Needs attention" };
@@ -54,29 +54,59 @@ function WhatsAppBar() {
   );
 }
 
-/** Pick a thumbnail for a video that is already on YouTube and send it there. */
+/** Pick a thumbnail for a video that is already on YouTube and send it there (straight from this page, with a progress bar). */
 function ChangeThumb({ r, reload }: { r: Row; reload: () => void }) {
   const nat = r.scene === "nature" && r.options?.clip?.thumb ? r.options : null;
   const [open, setOpen] = useState(false); const [style, setStyle] = useState<ThumbStyle | null>(nat?.thumb?.style || "big");
   const [own, setOwn] = useState<{ title?: string; hook?: string }>(nat?.thumb ? { title: nat.thumb.title, hook: nat.thumb.hook } : {});
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [step, setStep] = useState<{ pct: number; note: string; wait?: boolean } | null>(null); const [err, setErr] = useState(""); const [secs, setSecs] = useState(0);
+  useEffect(() => { if (!step || step.pct >= 100) return; const t0 = Date.now() - secs * 1000; const id = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 500); return () => clearInterval(id); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!step && step.pct < 100]);
   if (!nat) return null;
   const words = { ...thumbWords(nat.env, nat.sound, r.minutes), ...own };
-  if (!open) return <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={() => setOpen(true)}>{nat.thumb ? "Change thumbnail" : "Add a thumbnail"}</button>;
+  const busy = !!step && step.pct < 100;
+  if (!open) return <button className="btn quiet" style={{ padding: "6px 12px", fontSize: 14 }} onClick={() => { setOpen(true); setStep(null); setErr(""); }}>{nat.thumb ? "Change thumbnail" : "Add a thumbnail"}</button>;
+
   async function send() {
-    if (!style) { setOpen(false); return; }
-    setBusy(true); setErr("");
-    const res = await fetch(`/api/calm/${r.id}/thumb`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ style, ...words }) });
-    setBusy(false); if (!res.ok) { setErr((await res.json()).error || "Couldn't send"); return; } setOpen(false); reload();
+    if (!style || !nat) return;
+    setErr(""); setSecs(0); setStep({ pct: 5, note: "Drawing your thumbnail" });
+    const spec = { style, ...words };
+    let jpg: Blob;
+    try { jpg = await thumbJpeg(nat.clip.thumb, spec); }
+    catch { setStep(null); setErr("Couldn't draw the thumbnail on this device. Try again."); return; }
+    setStep({ pct: 15, note: `Sending it to Story Studio (${Math.round(jpg.size / 1024)} KB)` });
+    const fd = new FormData(); fd.append("spec", JSON.stringify(spec)); fd.append("image", jpg, "thumbnail.jpg");
+    const res = await new Promise<{ ok: boolean; error?: string }>((done) => {
+      const x = new XMLHttpRequest(); x.open("POST", `/api/calm/${r.id}/thumb`);
+      x.upload.onprogress = (e) => { if (e.lengthComputable) setStep({ pct: 15 + 45 * (e.loaded / e.total), note: `Sending it to Story Studio (${Math.round(e.loaded / 1024)} of ${Math.round(e.total / 1024)} KB)` }); };
+      x.upload.onload = () => setStep({ pct: 65, note: "YouTube is taking the thumbnail…", wait: true });
+      x.onload = () => { let d: { error?: string } = {}; try { d = JSON.parse(x.responseText); } catch {} done({ ok: x.status < 300, error: d.error }); };
+      x.onerror = () => done({ ok: false, error: "Connection lost — check your internet and try again" });
+      x.send(fd);
+    });
+    if (!res.ok) { setStep(null); setErr(res.error || "Couldn't send"); return; }
+    setStep({ pct: 100, note: "On YouTube ✓" }); reload();
+    setTimeout(() => { setOpen(false); setStep(null); }, 1800);
   }
+
   return (
-    <div className="panel" style={{ display: "grid", gap: 10, padding: 10 }}>
-      <ThumbPicker src={nat.clip.thumb} value={style} words={words} onPick={setStyle} onWords={(w) => setOwn({ ...own, ...w })} />
-      <div className="row" style={{ gap: 8 }}>
-        <button className="btn" onClick={send} disabled={busy || !style}>{busy ? "Sending…" : "Put this thumbnail on YouTube"}</button>
-        <button className="btn quiet" onClick={() => setOpen(false)}>Cancel</button>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label="Choose a thumbnail" onClick={(e) => { if (e.target === e.currentTarget && !busy) setOpen(false); }}>
+      <div>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <h3 style={{ margin: 0 }}>Choose your thumbnail</h3>
+          <button className="btn quiet" onClick={() => setOpen(false)} disabled={busy}>Close</button>
+        </div>
+        <ThumbPicker src={nat.clip.thumb} value={style} words={words} onPick={setStyle} onWords={(w) => setOwn({ ...own, ...w })} />
+        {step && <div>
+          <div className={`bar ${step.wait ? "wait" : ""} ${step.pct >= 100 ? "full" : ""}`} role="progressbar" aria-valuenow={Math.round(step.pct)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(3, step.pct)}%` }} /></div>
+          <p className="small muted" style={{ margin: "6px 0 0" }}>{step.note} · {Math.round(step.pct)}% · {secs}s</p>
+        </div>}
+        {err && <p className="small" style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
+        <div className="row" style={{ gap: 8, position: "sticky", bottom: 0, background: "var(--card)", paddingTop: 6 }}>
+          <button className="btn" onClick={send} disabled={busy || !style}>{busy ? "Sending…" : step?.pct === 100 ? "Done ✓" : "Put this thumbnail on YouTube"}</button>
+          <span className="small muted">Usually takes a few seconds.</span>
+        </div>
       </div>
-      {err && <p className="small" style={{ color: "var(--rose)", margin: 0 }}>{err}</p>}
     </div>
   );
 }
